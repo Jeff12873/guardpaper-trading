@@ -1,0 +1,71 @@
+// Dictionnaire du trading (définitions courtes, réutilisées par les boutons ⓘ de l'interface)
+// et glossaire des annonces économiques telles qu'elles apparaissent dans le calendrier ForexFactory.
+(function (racine) {
+  'use strict';
+  const DICTIONNAIRE = [
+    { cle: 'paire', terme: 'Paire de devises', def: "Deux devises cotées l'une contre l'autre. EUR/USD = 1,0950 : 1 euro vaut 1,0950 dollar. La première est la devise de <b>base</b>, la seconde la devise de <b>cotation</b>." },
+    { cle: 'long', terme: 'Achat (long)', def: "Parier sur la <b>hausse</b> de la paire : on achète la devise de base. On gagne si le prix monte. Le stop est <b>sous</b> l'entrée." },
+    { cle: 'short', terme: 'Vente (short)', def: "Parier sur la <b>baisse</b> de la paire : on vend la devise de base. On gagne si le prix baisse. Le stop est <b>au-dessus</b> de l'entrée." },
+    { cle: 'pip', terme: 'Pip', def: "Plus petite variation « standard » d'un cours : 0,0001 pour la plupart des paires, 0,01 pour les paires avec le yen (JPY). Le 5e chiffre (ou 3e pour le JPY) est un dixième de pip." },
+    { cle: 'lot', terme: 'Lot', def: "Unité de taille d'une position : 1 lot = 100 000 unités de la devise de base. 0,10 lot = 10 000 unités ; 0,01 lot (micro-lot, 1 000 unités) est le minimum." },
+    { cle: 'spread', terme: 'Spread', def: "Écart entre le prix d'achat (ask) et le prix de vente (bid), en pips. C'est un coût payé à l'ouverture de chaque trade : en achat, on entre au prix ask, plus haut que le prix affiché par le graphique (bid). Sur un compte <b>Razor</b> (Pepperstone), le spread est faible mais une <b>commission</b> s'y ajoute. Il s'élargit la nuit, à l'ouverture du lundi et autour des annonces." },
+    { cle: 'commission', terme: 'Commission', def: "Frais fixes du courtier par lot échangé. Sur un compte Razor, elle est facturée à l'ouverture et à la fermeture : saisis ici le total <b>aller-retour</b> en euros par lot." },
+    { cle: 'glissement', terme: 'Glissement (slippage)', def: "Différence entre le prix voulu et le prix réellement obtenu, quand le marché bouge vite (stop touché pendant une annonce, ouverture du lundi). On en prévoit un peu dans le calcul du risque pour ne pas le sous-estimer." },
+    { cle: 'stop', terme: 'Stop (stop loss)', def: "Ordre qui ferme automatiquement la position à perte si le prix atteint un niveau. Il fixe la perte maximale du trade et sert à calculer la taille de position." },
+    { cle: 'tp', terme: 'Take profit', def: "Ordre de sortie automatique en gain. La méthode MTF 2.0 n'en met pas de fixe : on laisse courir et on suit avec le stop." },
+    { cle: 'risque', terme: 'Risque par trade', def: "Part du capital que tu acceptes de perdre si le stop est touché : 0,5 %, 1 % ou 1,5 % selon la fréquence des opportunités. Il s'applique au <b>capital courant</b> (capital de départ + résultats clôturés)." },
+    { cle: 'risquereel', terme: 'Risque réel', def: "Perte réelle si le stop est touché, <b>frais compris</b> : distance du stop + spread + glissement, multipliés par la valeur du pip et par les lots, plus la commission. Il est toujours un peu sous le risque visé, car les lots sont arrondis vers le bas." },
+    { cle: 'r', terme: 'R (multiple du risque)', def: "Résultat d'un trade divisé par son risque réel. +2 R = tu as gagné deux fois ce que tu risquais ; −1 R = stop touché. Permet de comparer des trades de tailles différentes." },
+    { cle: 'pf', terme: 'Profit factor', def: "Somme des gains ÷ somme des pertes. Au-dessus de 1, la stratégie gagne de l'argent ; 1,5 ou plus est solide." },
+    { cle: 'drawdown', terme: 'Drawdown max', def: "Plus forte baisse, en R, entre un sommet de résultat cumulé et le creux qui suit. Mesure la pire série de pertes à encaisser." },
+    { cle: 'discipline', terme: 'Taux de discipline', def: "Part des trades enregistrés <b>dans les règles</b>. L'objectif est d'être au-dessus de 90 %, et de vérifier dans le journal si les trades hors règles font moins bien." },
+    { cle: 'exposition', terme: 'Exposition par devise', def: "Nombre de positions ouvertes qui contiennent une même devise. Trois positions avec l'USD, c'est surtout un seul pari sur le dollar." },
+    { cle: 'correlation', terme: 'Corrélation', def: "Mesure (coefficient de <b>Pearson</b>, de −1 à +1) de la façon dont deux paires bougent ensemble, calculée ici sur les rendements journaliers des N derniers jours (fixings BCE). +1 : elles bougent pareil ; −1 : en miroir ; 0 : aucun lien." },
+    { cle: 'correlationorientee', terme: 'Corrélation orientée', def: "Corrélation multipliée par le sens des deux trades (+1 achat, −1 vente). Au-dessus de 0,8 : les deux trades sont <b>le même pari</b> (risque doublé). Sous −0,8 : ils <b>se neutralisent</b> (tu paies des frais pour un pari nul)." },
+    { cle: 'renforcement', terme: 'Renforcement', def: "Ajouter une nouvelle position dans le même sens sur une paire déjà ouverte. Interdit ici : chaque idée de trade n'a qu'un seul risque." },
+    { cle: 'eurusd', terme: 'Cours EUR/USD de conversion', def: "Ton compte est en euros mais la valeur d'un pip est en dollars (ou en devise de cotation). Le cours EUR/USD convertit cette valeur en euros. En automatique, l'appli prend le <b>fixing BCE</b> du jour du trade." },
+    { cle: 'fixing', terme: 'Fixing BCE', def: "Cours de référence publié chaque jour ouvré vers 16 h par la Banque centrale européenne. Source gratuite et stable, utilisée pour la corrélation et la conversion." },
+    { cle: 'replay', terme: 'Bar Replay', def: "Mode de TradingView qui rejoue le marché bougie par bougie depuis une date passée : on backteste sans connaître la suite. La date à saisir est celle de la bougie, pas celle du jour." },
+    { cle: 'timeframe', terme: 'Unité de temps (H4, H1)', def: "Durée d'une bougie : H4 = 4 heures, H1 = 1 heure. MTF = multi-timeframe : la tendance se lit en H4, l'entrée se cherche en H1." },
+    { cle: 'dow', terme: 'Structure de Dow', def: "Tendance haussière = sommets et creux de plus en plus hauts ; baissière = de plus en plus bas. Elle est cassée quand un creux (ou sommet) précédent est enfoncé." },
+    { cle: 'ema', terme: 'EMA 100', def: "Moyenne mobile exponentielle sur 100 bougies : moyenne des cours qui donne plus de poids aux plus récents. Sert de filtre de tendance." },
+    { cle: 'neckline', terme: 'Ligne de cou', def: "Ligne qui relie les points clés d'une figure (creux d'un double sommet, base d'une épaule-tête-épaule…). Sa cassure en clôture déclenche l'entrée." },
+    { cle: 'swing', terme: 'Swing trading', def: "Trading qui garde les positions de quelques jours à quelques semaines, pour capter un mouvement de tendance." },
+    { cle: 'levier', terme: 'Levier et marge', def: "Le levier permet d'ouvrir une position plus grande que le capital déposé ; la marge est la somme bloquée en garantie. Le risque réel dépend du stop et de la taille, pas du levier." },
+    { cle: 'impact', terme: 'Annonce à fort impact', def: "Publication économique (emploi, inflation, décision de taux…) qui fait souvent bouger fortement les devises concernées. Spreads élargis et glissement possibles : on n'entre pas juste avant ni juste après." },
+  ];
+
+  // Glossaire des annonces (noms comme dans le calendrier ForexFactory ; horaires indicatifs, heure de Paris)
+  const ANNONCES = [
+    { nom: 'Non-Farm Employment Change (NFP)', devise: 'USD', quoi: "Créations d'emplois hors agriculture aux États-Unis", quand: '1er vendredi du mois, 14 h 30', impact: 'Très fort' },
+    { nom: 'Unemployment Rate', devise: 'USD, EUR, GBP, CAD, AUD, NZD', quoi: 'Taux de chômage', quand: 'Mensuel (trimestriel en NZD)', impact: 'Fort' },
+    { nom: 'Average Hourly Earnings', devise: 'USD', quoi: 'Évolution des salaires horaires (pression sur l\'inflation)', quand: 'Avec le NFP', impact: 'Fort' },
+    { nom: 'CPI m/m, CPI y/y, Core CPI', devise: 'Toutes', quoi: "Inflation des prix à la consommation (Core : hors énergie et alimentation)", quand: 'Mensuel (trimestriel en AUD, NZD)', impact: 'Très fort' },
+    { nom: 'Core PCE Price Index', devise: 'USD', quoi: "Inflation préférée de la Fed (dépenses de consommation)", quand: 'Mensuel, fin de mois, 14 h 30', impact: 'Fort' },
+    { nom: 'PPI m/m', devise: 'USD, autres', quoi: 'Prix à la production (annonce l\'inflation future)', quand: 'Mensuel', impact: 'Moyen à fort' },
+    { nom: 'Federal Funds Rate, FOMC Statement', devise: 'USD', quoi: 'Décision de taux de la Réserve fédérale et communiqué', quand: '8 fois par an, 20 h (19 h quand les changements d\'heure ne tombent pas le même jour)', impact: 'Très fort' },
+    { nom: 'FOMC Press Conference', devise: 'USD', quoi: 'Conférence de presse du président de la Fed après la décision', quand: '30 min après la décision', impact: 'Très fort' },
+    { nom: 'FOMC Meeting Minutes', devise: 'USD', quoi: 'Compte rendu détaillé de la réunion précédente', quand: '3 semaines après chaque réunion, 20 h', impact: 'Fort' },
+    { nom: 'Main Refinancing Rate, ECB Press Conference', devise: 'EUR', quoi: 'Décision de taux de la BCE, puis conférence de presse', quand: '8 fois par an, 14 h 15 et 14 h 45', impact: 'Très fort' },
+    { nom: 'Official Bank Rate, MPC Vote', devise: 'GBP', quoi: "Décision de taux de la Banque d'Angleterre et votes des membres", quand: '8 fois par an, 13 h', impact: 'Très fort' },
+    { nom: 'BOJ Policy Rate, BOJ Press Conference', devise: 'JPY', quoi: 'Décision de la Banque du Japon', quand: '8 fois par an, nuit ou matin (heure de Paris)', impact: 'Très fort' },
+    { nom: 'SNB Policy Rate', devise: 'CHF', quoi: 'Décision de la Banque nationale suisse', quand: '4 fois par an, 9 h 30', impact: 'Très fort' },
+    { nom: 'Cash Rate, RBA Statement', devise: 'AUD', quoi: 'Décision de la Banque de réserve d\'Australie', quand: '8 fois par an, matin tôt', impact: 'Très fort' },
+    { nom: 'Overnight Rate, BOC Statement', devise: 'CAD', quoi: 'Décision de la Banque du Canada', quand: '8 fois par an, 15 h 45', impact: 'Très fort' },
+    { nom: 'Official Cash Rate, RBNZ Statement', devise: 'NZD', quoi: 'Décision de la Banque de réserve de Nouvelle-Zélande', quand: '7 fois par an, nuit (heure de Paris)', impact: 'Très fort' },
+    { nom: 'GDP q/q (Advance, Prelim, Final)', devise: 'Toutes', quoi: 'Croissance du PIB sur le trimestre (première estimation = la plus suivie)', quand: 'Trimestriel', impact: 'Fort' },
+    { nom: 'Retail Sales m/m', devise: 'USD, GBP, CAD, AUD, NZD', quoi: 'Ventes au détail (consommation des ménages)', quand: 'Mensuel', impact: 'Fort' },
+    { nom: 'ISM Manufacturing PMI, ISM Services PMI', devise: 'USD', quoi: "Indices d'activité des directeurs d'achat (au-dessus de 50 = expansion)", quand: '1er et 3e jour ouvré du mois, 16 h', impact: 'Fort' },
+    { nom: 'Flash Manufacturing / Services PMI', devise: 'EUR, GBP, USD, AUD, JPY', quoi: "Première estimation des indices d'activité", quand: 'Vers le 23 du mois, matin', impact: 'Moyen à fort' },
+    { nom: 'Unemployment Claims', devise: 'USD', quoi: "Nouvelles inscriptions au chômage de la semaine", quand: 'Chaque jeudi, 14 h 30', impact: 'Moyen' },
+    { nom: 'Employment Change', devise: 'AUD, CAD, NZD', quoi: "Créations d'emplois (l'équivalent du NFP pour ces pays)", quand: 'Mensuel (trimestriel en NZD)', impact: 'Fort' },
+    { nom: 'Claimant Count Change', devise: 'GBP', quoi: "Variation du nombre de demandeurs d'allocations chômage", quand: 'Mensuel, 8 h', impact: 'Moyen à fort' },
+    { nom: 'German Ifo, ZEW Economic Sentiment', devise: 'EUR', quoi: "Moral des entreprises et des analystes en Allemagne", quand: 'Mensuel, matin', impact: 'Moyen' },
+    { nom: 'Prelim UoM Consumer Sentiment, CB Consumer Confidence', devise: 'USD', quoi: 'Confiance des consommateurs américains', quand: 'Mensuel, 16 h', impact: 'Moyen' },
+    { nom: 'Trade Balance', devise: 'Toutes', quoi: 'Balance commerciale (exportations − importations)', quand: 'Mensuel', impact: 'Faible à moyen' },
+    { nom: '… Speaks', devise: 'Selon l\'orateur', quoi: "Discours d'un banquier central (président de la Fed, de la BCE…) : peut annoncer un changement de politique", quand: 'Variable', impact: 'Variable, souvent fort' },
+    { nom: 'Bank Holiday', devise: 'Selon le pays', quoi: 'Jour férié : marché plus calme, liquidité réduite, spreads parfois plus larges', quand: 'Variable', impact: 'Ne bloque pas' },
+  ];
+
+  racine.GLOSSAIRE = { DICTIONNAIRE, ANNONCES };
+})(typeof self !== 'undefined' ? self : this);

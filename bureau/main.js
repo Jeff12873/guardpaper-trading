@@ -14,6 +14,8 @@ const { pathToFileURL } = require('node:url');
 const { ecrireAtomique } = require('./coffre');
 const Calculs = require('../calculs.js');
 const Annonces = require('./annonces');
+const Cours = require('./cours');
+const crypto = require('node:crypto');
 const PAQUET = require('../package.json');
 
 const NOM = PAQUET.productName;
@@ -45,11 +47,28 @@ async function ecrireFichier(donnees) {
 
 // Calendrier économique : cache à côté du fichier de données (une requête par heure au plus)
 const annonces = Annonces.creer({ dossierCache: path.dirname(FICHIER), fetch: (...a) => net.fetch(...a) });
+// Cours BCE (corrélation, EUR/USD de conversion) : même dossier de cache
+const cours = Cours.creer({ dossierCache: path.dirname(FICHIER), fetch: (...a) => net.fetch(...a) });
+
+// Captures d'écran (exemples de la checklist, prises de position) : un fichier image par capture
+const DOSSIER_CAPTURES = path.join(path.dirname(FICHIER), 'captures');
+const TYPES_IMAGE = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
+const TAILLE_MAX = 15 * 1024 * 1024;
 
 // --- Actions offertes à l'interface (IPC) --------------------------------------------------
 
 ipcMain.handle('config', () => ({ version: app.getVersion(), nom: NOM, fichier: FICHIER }));
 ipcMain.handle('lire-donnees', () => lireFichier());
+ipcMain.handle('cours', () => cours.obtenir());
+ipcMain.handle('enregistrer-capture', async (evenement, octets, type) => {
+  const ext = TYPES_IMAGE[type];
+  if (!ext) throw new Error('Format accepté : PNG, JPEG ou WebP.');
+  if (!(octets instanceof Uint8Array) || !octets.length || octets.length > TAILLE_MAX) throw new Error('Image vide ou trop lourde (15 Mo au plus).');
+  const nom = `c-${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
+  await fsp.mkdir(DOSSIER_CAPTURES, { recursive: true });
+  await fsp.writeFile(path.join(DOSSIER_CAPTURES, nom), octets);
+  return nom;
+});
 ipcMain.handle('annonces', (evenement, forcer) => annonces.obtenir(forcer === true));
 ipcMain.handle('ecrire-donnees', async (evenement, donnees) => { await ecrireFichier(donnees); return true; });
 
@@ -116,7 +135,14 @@ function surveiller() {
 
 function servirFichiers() {
   protocol.handle('app', requete => {
-    const fichier = path.normalize(path.join(RACINE, decodeURIComponent(new URL(requete.url).pathname)));
+    const chemin = decodeURIComponent(new URL(requete.url).pathname);
+    // Captures de l'utilisateur : servies depuis son dossier de données, noms générés par l'appli seulement
+    if (chemin.startsWith('/captures/')) {
+      const nom = chemin.slice('/captures/'.length);
+      if (!Calculs.NOM_CAPTURE.test(nom)) return new Response('Interdit', { status: 403 });
+      return net.fetch(pathToFileURL(path.join(DOSSIER_CAPTURES, nom)).toString());
+    }
+    const fichier = path.normalize(path.join(RACINE, chemin));
     if (!fichier.startsWith(RACINE + path.sep)) return new Response('Interdit', { status: 403 });
     return net.fetch(pathToFileURL(fichier).toString());
   });

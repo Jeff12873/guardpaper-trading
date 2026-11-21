@@ -26,6 +26,8 @@
     "files": [
       "index.html",
       "calculs.js",
+      "exemples.js",
+      "glossaire.js",
       "icone.svg",
       "bureau/**",
       "package.json"

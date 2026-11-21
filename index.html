@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:">
-
 <title>GuardPaper Trading</title>
 <link rel="icon" href="icone.svg">
 <style>
@@ -14,6 +13,7 @@
   --ok:#1e7d4f; --ok-bg:#e3f4ea; --bad:#b4282d; --bad-bg:#fbe6e6; --warn:#9a6200; --warn-bg:#fdf1d8;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular","DejaVu Sans Mono",monospace;
+  --h-champ:40px;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
@@ -31,11 +31,12 @@
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding:16px}
-.wrap{max-width:1080px;margin:0 auto;display:grid;gap:16px}
+.wrap{max-width:1140px;margin:0 auto;display:grid;gap:16px}
 header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
 h1{font-size:22px;margin:0;text-wrap:balance}
 h1 .version{font-size:12px;font-weight:400;color:var(--muted);margin-left:6px}
 h2{font-size:16px;margin:0 0 8px;text-wrap:balance}
+h4{margin:12px 0 6px;font-size:14px}
 .sub{color:var(--muted);font-size:13px}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
 .outils{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -45,50 +46,83 @@ nav[role=tablist] button[aria-selected="true"]{color:var(--ink);border-bottom-co
 nav .count{font-family:var(--f-num);font-size:12px;background:var(--line);border-radius:10px;padding:0 6px;margin-left:4px}
 section[hidden]{display:none}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
-.grid2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
-@media (max-width:760px){.grid2{grid-template-columns:1fr}}
-.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
-label.f{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.colonne{display:grid;gap:16px;align-content:start}
+.grid2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end}
+/* Formulaire du trade : grille fixe de 3 colonnes égales, toutes les cases à la même hauteur */
+.champs3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+@media (max-width:560px){.champs3{grid-template-columns:1fr}}
+.champs3 input,.champs3 select,.champs3 .seg,.champs3 .stepper,.champs3 .lecture{height:var(--h-champ);width:100%;min-width:0}
+label.f,.f{display:grid;gap:4px;font-size:13px;color:var(--muted)}
 input,select,textarea{font:15px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
+.fields input,.fields select{height:var(--h-champ);width:100%;min-width:0}
+textarea{width:100%;resize:vertical;min-height:60px}
 input.num{font-family:var(--f-num)}
 input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.seg button{flex:1;background:var(--bg);border:0;padding:8px;font:600 14px var(--f-body);color:var(--muted);cursor:pointer}
+.seg button{flex:1;background:var(--bg);border:0;padding:0 8px;font:600 14px var(--f-body);color:var(--muted);cursor:pointer}
 .seg button.on-long{background:var(--ok-bg);color:var(--ok)}
 .seg button.on-short{background:var(--bad-bg);color:var(--bad)}
-.checklist{display:grid;gap:6px;margin-top:4px}
-.checklist label{display:flex;gap:8px;align-items:flex-start;font-size:14px;padding:6px 8px;border-radius:6px;cursor:pointer}
-.checklist label:hover{background:var(--bg)}
-.checklist input{margin-top:3px}
-.checklist b{white-space:nowrap}
-.news{display:grid;gap:8px;padding:10px 12px;border-radius:6px;background:var(--bg);border:1px solid var(--line);font-size:14px}
-.news.manuel{background:var(--warn-bg);border-color:transparent}
+.stepper{display:flex}
+.stepper input{flex:1;border-radius:6px 0 0 6px;height:100%}
+.fleches{display:grid;grid-template-rows:1fr 1fr;width:34px}
+.fleches button{border:1px solid var(--line);border-left:0;background:var(--surface);color:var(--ink);padding:0;font-size:10px;cursor:pointer;line-height:1}
+.fleches button:first-child{border-radius:0 6px 0 0}
+.fleches button:last-child{border-radius:0 0 6px 0;border-top:0}
+.fleches button:hover{color:var(--accent)}
+.lecture{display:flex;align-items:center;padding:0 10px;border:1px dashed var(--line);border-radius:6px;font-family:var(--f-num);color:var(--ink)}
+.def{border:0;background:none;color:var(--accent);cursor:pointer;font-size:13px;padding:0 3px;line-height:1}
+/* Checklist : vignette d'exemple + case + nombre de captures perso */
+.checklist{display:grid;gap:4px;margin-top:4px}
+.chk{display:grid;grid-template-columns:60px minmax(0,1fr) auto;gap:10px;align-items:center;padding:4px 6px;border-radius:6px}
+.chk:hover{background:var(--bg)}
+.vignette{width:60px;height:36px;padding:1px;border:1px solid var(--line);border-radius:4px;background:var(--surface);cursor:zoom-in}
+.chk label{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
+.chk input{margin-top:3px}
+.chk b{white-space:nowrap}
+.nbcap{font-size:12px;color:var(--muted);white-space:nowrap}
+.ex{width:100%;height:100%;display:block}
+.ex .k-up{fill:var(--ok);stroke:var(--ok)} .ex .k-dn{fill:var(--bad);stroke:var(--bad)}
+.ex .l-acc{stroke:var(--accent);fill:none} .ex .l-bad{stroke:var(--bad);fill:none} .ex .l-mut{stroke:var(--muted);fill:none}
+.ex .t{fill:var(--muted);font:6.5px var(--f-body)}
+.exgrand{max-width:460px;aspect-ratio:120/72;margin:0 auto 8px;background:var(--bg);border-radius:8px;padding:6px}
+/* Captures */
+.vignettes{display:flex;flex-wrap:wrap;gap:8px;min-height:20px}
+.vig{position:relative;width:104px;height:68px;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+.vig img{width:100%;height:100%;object-fit:cover;cursor:zoom-in;display:block}
+.vig .x{position:absolute;top:3px;right:3px;border:0;border-radius:50%;width:20px;height:20px;background:rgba(0,0,0,.65);color:#fff;cursor:pointer;font-size:11px;line-height:20px;padding:0}
+.depot{display:grid;gap:8px;padding:10px;border:1px dashed var(--line);border-radius:6px}
+.depot.survol{border-color:var(--accent);background:var(--bg)}
+/* Annonces */
+.news{display:grid;gap:8px;font-size:14px}
+.news.manuel{background:var(--warn-bg)}
 .news a{color:var(--accent)}
 .news .tete{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.news .tete b{flex:1}
+.news .tete h2{flex:1;margin:0}
 .news .manu{display:flex;gap:8px;align-items:flex-start}
 .news .manu input{margin-top:3px}
 .news [hidden]{display:none}
 .annonces{list-style:none;margin:0;padding:0;display:grid;gap:2px;font-size:13px}
-.annonces li{display:grid;grid-template-columns:88px 92px 40px 1fr;gap:8px;padding:3px 6px;border-radius:4px;color:var(--muted)}
+.annonces li{display:grid;grid-template-columns:96px 96px 40px minmax(0,1fr);gap:8px;padding:3px 6px;border-radius:4px;color:var(--muted)}
 .annonces li.paire{color:var(--ink);font-weight:600;background:var(--warn-bg)}
 .annonces li.bloque{background:var(--bad-bg);color:var(--bad)}
 .verdict{display:grid;gap:12px;position:sticky;top:12px}
-.calc{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px}
+.calc{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px;margin:0}
 .calc dt{color:var(--muted)} .calc dd{margin:0;text-align:right}
 .big{font-size:26px;font-weight:600}
 .rules{list-style:none;margin:0;padding:0;display:grid;gap:4px}
 .rules li{display:flex;gap:8px;padding:6px 8px;border-radius:6px;font-size:14px;align-items:flex-start}
-.rules li.ok{background:var(--ok-bg)} .rules li.bad{background:var(--bad-bg)}
+.rules li.ok{background:var(--ok-bg)} .rules li.bad{background:var(--bad-bg)} .rules li.warn{background:var(--warn-bg)}
 .rules .ic{font-weight:700;width:14px;flex:none}
-.rules li.ok .ic{color:var(--ok)} .rules li.bad .ic{color:var(--bad)}
+.rules li.ok .ic{color:var(--ok)} .rules li.bad .ic{color:var(--bad)} .rules li.warn .ic{color:var(--warn)}
 .btn{font:600 15px var(--f-body);border-radius:6px;padding:10px 14px;cursor:pointer;border:1px solid transparent}
 .btn.primary{background:var(--accent);color:#fff}
 .btn.primary:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
 .btn.ghost{background:none;border-color:var(--line);color:var(--ink)}
 .btn.danger{background:none;border-color:var(--bad);color:var(--bad)}
 .btn.danger:disabled{opacity:.5;cursor:not-allowed}
-.btn.small{padding:4px 8px;font-size:13px}
+.btn.small{padding:4px 10px;font-size:13px}
 .btn.maj{background:#FDE68A;color:#1F2430;border-color:#F59E0B}
 .hidden{display:none !important}
 .override{display:grid;gap:8px;border-top:1px dashed var(--line);padding-top:12px}
@@ -101,29 +135,56 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
 th{font-size:12px;color:var(--muted);font-weight:600}
-td.r{text-align:right}
+th[data-tri]{cursor:pointer;user-select:none}
+th[data-tri]:hover{color:var(--ink)}
+th.actif::after{content:" ▾"} th.actif.asc::after{content:" ▴"}
+td.r,th.r{text-align:right}
+tr.cliquable{cursor:pointer} tr.cliquable:hover td{background:var(--bg)}
 .pill{display:inline-block;font-size:12px;font-weight:600;border-radius:10px;padding:1px 8px}
 .pill.long{background:var(--ok-bg);color:var(--ok)} .pill.short{background:var(--bad-bg);color:var(--bad)}
 .pill.okp{background:var(--ok-bg);color:var(--ok)} .pill.badp{background:var(--bad-bg);color:var(--bad)}
-.openrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end}
+/* Positions ouvertes : colonnes fixes, champs et boutons à la même hauteur */
+.openrow{display:grid;grid-template-columns:minmax(150px,1.2fr) minmax(110px,1fr) minmax(100px,.9fr) minmax(120px,1fr) minmax(190px,1.3fr) auto;gap:12px;align-items:end}
+.openrow input{height:var(--h-champ);width:100%;min-width:0}
+.openrow .acts{display:flex;gap:6px}
+.openrow .acts .btn{height:var(--h-champ)}
+@media (max-width:960px){.openrow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.filtres{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin-bottom:8px}
+.filtres select,.filtres input{height:36px;padding:4px 8px;font-size:14px}
 .banner{padding:10px 12px;border-radius:6px;font-size:14px;background:var(--warn-bg);color:var(--ink)}
 .empty{color:var(--muted);font-size:14px;padding:12px 0}
 .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;font-size:14px;z-index:100;max-width:calc(100vw - 32px)}
 .toast button{border:1px solid currentColor;background:none;color:inherit;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit}
 .compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-size:14px}
 .ligne{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-dialog{border:none;border-radius:12px;padding:0;background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.3);width:min(720px,calc(100vw - 32px))}
-dialog::backdrop{background:rgba(0,0,0,.35)}
+.coche{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink)}
+/* Corrélation */
+table.matrice{width:auto}
+table.matrice th,table.matrice td{text-align:center;padding:8px 10px}
+table.matrice td{font-family:var(--f-num);border:1px solid var(--line)}
+.legende{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.legende span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-2px;background:var(--c)}
+/* Dialogues */
+dialog{border:none;border-radius:12px;padding:0;background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.3);width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
 dialog form{padding:20px}
 dialog h3{margin:0 0 12px}
+#dlgAide{width:min(1040px,calc(100vw - 32px))}
+#dlgDef{width:min(440px,calc(100vw - 32px))}
+#dlgImage{width:auto;max-width:calc(100vw - 32px);background:#000}
+#dlgImage img{display:block;max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);cursor:zoom-out}
 .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:16px}
-.aide{display:grid;grid-template-columns:190px 1fr;gap:16px;max-height:70vh}
+.aide{display:grid;grid-template-columns:200px 1fr;gap:16px;max-height:72vh}
 .aide nav{display:flex;flex-direction:column;gap:4px;overflow:auto}
 .aide nav button{text-align:left}
 .aide nav button.on{border-color:var(--accent);color:var(--accent)}
 .aide article{overflow:auto;padding-right:6px;font-size:14px}
+.aide article td{white-space:normal;vertical-align:top}
 .aide .astuce{background:var(--warn-bg);border-radius:6px;padding:8px 10px}
 @media (max-width:640px){.aide{grid-template-columns:1fr}.aide nav{flex-direction:row;flex-wrap:wrap}}
+.fiche{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 16px;font-size:14px;margin:0 0 8px}
+.fiche div{display:grid}
+.fiche dt{font-size:12px;color:var(--muted)} .fiche dd{margin:0;font-family:var(--f-num)}
 </style>
 </head>
 <body>
@@ -136,54 +197,73 @@ dialog h3{margin:0 0 12px}
     <div class="outils">
       <span class="sub num" id="capLine">Capital : —</span>
       <button class="btn small maj hidden" id="btnMaj" type="button">⬆ Mise à jour</button>
-      <button class="btn ghost small" id="btnTheme" type="button" title="Thème : automatique, clair, sombre">◐</button>
+      <button class="btn ghost small" id="btnTheme" type="button" title="Thème : automatique, clair, sombre">🌓 Thème</button>
       <button class="btn ghost small" id="btnAide" type="button">❓ Aide</button>
     </div>
   </header>
   <div class="banner" id="storeBanner" hidden></div>
 
   <nav role="tablist">
-    <button role="tab" id="tab-new" aria-selected="true" data-tab="new">Nouveau trade</button>
-    <button role="tab" id="tab-open" aria-selected="false" data-tab="open">Positions ouvertes<span class="count" id="openCount">0</span></button>
-    <button role="tab" id="tab-journal" aria-selected="false" data-tab="journal">Journal et stats</button>
-    <button role="tab" id="tab-settings" aria-selected="false" data-tab="settings">Réglages</button>
+    <button role="tab" aria-selected="true" data-tab="new">Nouveau trade</button>
+    <button role="tab" aria-selected="false" data-tab="open">Positions ouvertes<span class="count" id="openCount">0</span></button>
+    <button role="tab" aria-selected="false" data-tab="journal">Journal et stats</button>
+    <button role="tab" aria-selected="false" data-tab="corr">Corrélation</button>
+    <button role="tab" aria-selected="false" data-tab="settings">Réglages</button>
   </nav>
 
   <!-- NOUVEAU TRADE -->
   <section id="view-new">
     <div class="grid2">
-      <div class="card" style="display:grid;gap:16px">
-        <div class="fields">
-          <label class="f" for="fDate">Date et heure (en Replay : celle de la bougie)
-            <input type="datetime-local" id="fDate"></label>
-          <label class="f" for="fPair">Paire
-            <select id="fPair"></select></label>
-          <div class="f" style="display:grid;gap:4px;font-size:13px;color:var(--muted)">Sens
-            <div class="seg" role="group" aria-label="Sens">
-              <button type="button" id="bLong">Achat</button>
-              <button type="button" id="bShort">Vente</button>
+      <div class="colonne">
+        <div class="card" style="display:grid;gap:14px">
+          <h2 style="margin:0">Le trade</h2>
+          <div class="champs3">
+            <label class="f" for="fDate"><span>Date et heure <button type="button" class="def" data-def="replay" aria-label="Définition : Bar Replay">ⓘ</button></span>
+              <input type="datetime-local" id="fDate" title="En Bar Replay : la date de la bougie"></label>
+            <label class="f" for="fPair"><span>Paire <button type="button" class="def" data-def="paire" aria-label="Définition : paire">ⓘ</button></span>
+              <select id="fPair"></select></label>
+            <div class="f"><span>Sens <button type="button" class="def" data-def="long" aria-label="Définition : achat">ⓘ</button><button type="button" class="def" data-def="short" aria-label="Définition : vente">ⓘ</button></span>
+              <div class="seg" role="group" aria-label="Sens">
+                <button type="button" id="bLong">Achat</button>
+                <button type="button" id="bShort">Vente</button>
+              </div>
             </div>
+            <label class="f" for="fEntry"><span>Prix d'entrée</span>
+              <input class="num" id="fEntry" inputmode="decimal" placeholder="1,09650" autocomplete="off"></label>
+            <div class="f"><label for="fStop">Stop <button type="button" class="def" data-def="stop" aria-label="Définition : stop">ⓘ</button></label>
+              <div class="stepper">
+                <input class="num" id="fStop" inputmode="decimal" placeholder="1,09420" autocomplete="off" title="Flèches haut / bas : 1 pip ; avec Maj : 10 pips">
+                <div class="fleches"><button type="button" id="bStopUp" title="Monter le stop d'1 pip (Maj : 10)" aria-label="Monter le stop">▲</button><button type="button" id="bStopDn" title="Descendre le stop d'1 pip (Maj : 10)" aria-label="Descendre le stop">▼</button></div>
+              </div>
+            </div>
+            <div class="f"><span>Distance du stop <button type="button" class="def" data-def="pip" aria-label="Définition : pip">ⓘ</button></span>
+              <div class="lecture" id="oDist">—</div></div>
           </div>
-          <label class="f" for="fEntry">Prix d'entrée
-            <input class="num" id="fEntry" inputmode="decimal" placeholder="1,09650"></label>
-          <label class="f" for="fStop">Stop
-            <input class="num" id="fStop" inputmode="decimal" placeholder="1,09420"></label>
+          <label class="f" for="fComment">Commentaire (contexte, émotions, ce que je vois)
+            <textarea id="fComment" rows="2"></textarea></label>
+          <div class="depot" data-depot="form">
+            <div class="ligne"><b style="font-size:14px;flex:1">Captures de la prise de position</b>
+              <button type="button" class="btn ghost small" data-ajouter="form">＋ Ajouter</button></div>
+            <div class="vignettes" id="fCaptures"></div>
+            <div class="sub">Colle une capture avec <b>Ctrl+V</b>, glisse-dépose une image, ou utilise « Ajouter ».</div>
+          </div>
         </div>
 
-        <div class="news" id="newsBox">
-          <div class="tete"><b id="newsTitre">Annonces économiques</b>
+        <div class="card news" id="newsBox">
+          <div class="tete"><h2 id="newsTitre">Annonces économiques</h2>
             <button class="btn ghost small" id="bNewsMaj" type="button" title="Recharger le calendrier (au plus toutes les 5 min)">↻</button>
             <a href="https://fr.investing.com/economic-calendar/" target="_blank" rel="noopener">Calendrier Investing</a></div>
           <div class="sub" id="newsStatut">Chargement du calendrier…</div>
           <div class="manu" id="newsManuel">
             <input type="checkbox" id="fNews">
-            <label for="fNews" id="newsManuelTxt">Une annonce 3 étoiles (taux, emploi US, inflation) tombe dans la fenêtre sur une des deux devises.</label>
+            <label for="fNews" id="newsManuelTxt">Une annonce 3 étoiles tombe dans la fenêtre sur une des deux devises.</label>
           </div>
           <ul class="annonces" id="newsListe"></ul>
         </div>
 
-        <div>
+        <div class="card">
           <h2>Checklist MTF 2.0</h2>
+          <div class="sub">Clique sur une vignette pour voir l'exemple de base et tes propres captures.</div>
           <div class="checklist" id="checklist"></div>
         </div>
       </div>
@@ -192,12 +272,12 @@ dialog h3{margin:0 0 12px}
         <div class="card">
           <h2>Taille de position</h2>
           <dl class="calc">
-            <dt>Lots à prendre</dt><dd class="num big" id="oLots">—</dd>
+            <dt>Lots à prendre <button type="button" class="def" data-def="lot" aria-label="Définition : lot">ⓘ</button></dt><dd class="num big" id="oLots">—</dd>
             <dt>Unités</dt><dd class="num" id="oUnits">—</dd>
-            <dt>Distance du stop</dt><dd class="num" id="oPips">—</dd>
-            <dt>Risque visé</dt><dd class="num" id="oRiskTarget">—</dd>
-            <dt>Risque réel (frais inclus)</dt><dd class="num" id="oRiskReal">—</dd>
-            <dt>dont frais</dt><dd class="num" id="oFees">—</dd>
+            <dt>Risque visé <button type="button" class="def" data-def="risque" aria-label="Définition : risque">ⓘ</button></dt><dd class="num" id="oRiskTarget">—</dd>
+            <dt>Risque réel (frais inclus) <button type="button" class="def" data-def="risquereel" aria-label="Définition : risque réel">ⓘ</button></dt><dd class="num" id="oRiskReal">—</dd>
+            <dt>dont frais <button type="button" class="def" data-def="spread" aria-label="Définition : spread">ⓘ</button></dt><dd class="num" id="oFees">—</dd>
+            <dt>Cours EUR/USD <button type="button" class="def" data-def="eurusd" aria-label="Définition : cours de conversion">ⓘ</button></dt><dd class="num" id="oEurUsd">—</dd>
           </dl>
         </div>
         <div class="card">
@@ -220,7 +300,7 @@ dialog h3{margin:0 0 12px}
   <section id="view-open" hidden>
     <div class="card" style="display:grid;gap:12px">
       <h2>Positions ouvertes</h2>
-      <div class="sub">Quand le stop est touché ou que tu sors, saisis le prix de sortie. Le résultat est calculé net de frais.</div>
+      <div class="sub">Quand le stop est touché ou que tu sors, saisis le prix de sortie. Le résultat est calculé net de frais. « Fiche » : commentaire et captures.</div>
       <div id="openList" style="display:grid;gap:12px"></div>
     </div>
   </section>
@@ -228,18 +308,49 @@ dialog h3{margin:0 0 12px}
   <!-- JOURNAL -->
   <section id="view-journal" hidden>
     <div style="display:grid;gap:16px">
+      <div class="card">
+        <div class="filtres">
+          <label class="f" for="jPair">Paire<select id="jPair"></select></label>
+          <label class="f" for="jRes">Résultat<select id="jRes"><option value="">Tous</option><option value="gain">Gagnants</option><option value="perte">Perdants</option></select></label>
+          <label class="f" for="jRegles">Règles<select id="jRegles"><option value="">Toutes</option><option value="ok">Dans les règles</option><option value="hors">Hors règles</option></select></label>
+          <label class="f" for="jQ" style="flex:1;min-width:160px">Recherche (commentaire, raison)<input id="jQ" placeholder="ex. vengeance, annonce…"></label>
+          <button class="btn ghost small" id="jReset" type="button" style="height:36px">Effacer les filtres</button>
+        </div>
+        <div class="sub" id="jInfo"></div>
+      </div>
       <div class="tiles" id="tiles"></div>
       <div class="card">
-        <h2>Discipline : est-ce que respecter les règles paie ?</h2>
+        <h2>Discipline : est-ce que respecter les règles paie ? <button type="button" class="def" data-def="discipline" aria-label="Définition : discipline">ⓘ</button></h2>
         <div class="compare" id="compare"></div>
       </div>
       <div class="card">
-        <h2>Trades clôturés</h2>
+        <h2>Trades clôturés <button type="button" class="def" data-def="r" aria-label="Définition : R">ⓘ</button></h2>
+        <div class="sub">Clique sur un titre de colonne pour trier, sur une ligne pour ouvrir la fiche (captures, commentaire).</div>
         <div class="tablewrap"><table>
-          <thead><tr><th>Date</th><th>Paire</th><th>Sens</th><th>Lots</th><th class="r">Résultat (R)</th><th class="r">Résultat (€)</th><th>Règles</th><th></th></tr></thead>
+          <thead><tr><th data-tri="date">Entrée</th><th data-tri="exitDate">Sortie</th><th data-tri="pair">Paire</th><th>Sens</th><th data-tri="lots" class="r">Lots</th><th data-tri="r" class="r">R</th><th data-tri="pnl" class="r">€</th><th>Règles</th><th>Notes</th><th></th></tr></thead>
           <tbody id="closedBody"></tbody>
         </table></div>
       </div>
+    </div>
+  </section>
+
+  <!-- CORRELATION -->
+  <section id="view-corr" hidden>
+    <div class="card" style="display:grid;gap:12px">
+      <h2>Corrélation des paires <button type="button" class="def" data-def="correlation" aria-label="Définition : corrélation">ⓘ</button></h2>
+      <div class="ligne">
+        <label class="f" for="cDate">Calculée avant le<input type="date" id="cDate" style="height:var(--h-champ)"></label>
+        <button class="btn ghost small" id="cAujourdhui" type="button" style="height:var(--h-champ);align-self:end">Aujourd'hui</button>
+        <button class="btn ghost small" id="cDuTrade" type="button" style="height:var(--h-champ);align-self:end">Date du trade en saisie</button>
+      </div>
+      <div class="sub" id="corrInfo">Chargement des cours…</div>
+      <div class="tablewrap"><table class="matrice" id="matrice"></table></div>
+      <div class="legende">
+        <span style="--c:color-mix(in srgb,var(--ok) 70%,transparent)">bougent ensemble (≥ +0,8)</span>
+        <span style="--c:color-mix(in srgb,var(--ok) 25%,transparent)">lien faible</span>
+        <span style="--c:color-mix(in srgb,var(--bad) 70%,transparent)">bougent en miroir (≤ −0,8)</span>
+      </div>
+      <div class="sub">Pour la règle, la corrélation est <b>orientée</b> <button type="button" class="def" data-def="correlationorientee" aria-label="Définition : corrélation orientée">ⓘ</button> : achat EUR/USD et vente USD/CHF, deux paires en miroir, font le même pari.</div>
     </div>
   </section>
 
@@ -250,20 +361,32 @@ dialog h3{margin:0 0 12px}
         <h2>Capital et risque</h2>
         <div class="fields">
           <label class="f" for="sCapital">Capital de départ (€)<input class="num" id="sCapital" inputmode="decimal"></label>
-          <label class="f" for="sFreq">Fréquence des opportunités
+          <label class="f" for="sFreq"><span>Fréquence des opportunités <button type="button" class="def" data-def="risque" aria-label="Définition : risque">ⓘ</button></span>
             <select id="sFreq">
               <option value="many">Beaucoup : 0,5 % par trade</option>
               <option value="mid">Modérée : 1 % par trade</option>
               <option value="few">Rare : 1,5 % par trade</option>
             </select></label>
           <label class="f" for="sMaxTotal">Risque total max ouvert (%)<input class="num" id="sMaxTotal" inputmode="decimal"></label>
-          <label class="f" for="sMaxCcy">Positions max par devise<input class="num" id="sMaxCcy" inputmode="numeric"></label>
+          <label class="f" for="sMaxCcy"><span>Positions max par devise <button type="button" class="def" data-def="exposition" aria-label="Définition : exposition">ⓘ</button></span><input class="num" id="sMaxCcy" inputmode="numeric"></label>
         </div>
-        <h2>Horaires et conversion</h2>
+        <h2>Corrélation</h2>
+        <div class="fields">
+          <label class="f" for="sCorrN">Jours de calcul (N)<input class="num" id="sCorrN" inputmode="numeric"></label>
+          <label class="f" for="sCorrFort"><span>Même pari à partir de <button type="button" class="def" data-def="correlationorientee" aria-label="Définition : corrélation orientée">ⓘ</button></span><input class="num" id="sCorrFort" inputmode="decimal"></label>
+          <label class="f" for="sCorrAlerte">Alerte à partir de<input class="num" id="sCorrAlerte" inputmode="decimal"></label>
+          <label class="f" for="sMaxCorrelees">Trades max sur un même pari<input class="num" id="sMaxCorrelees" inputmode="numeric"></label>
+        </div>
+        <h2>Horaires, saisie et conversion</h2>
         <div class="fields">
           <label class="f" for="sStart">Début des entrées (h, Paris)<input class="num" id="sStart" inputmode="numeric"></label>
           <label class="f" for="sEnd">Fin des entrées (h, Paris)<input class="num" id="sEnd" inputmode="numeric"></label>
-          <label class="f" for="sEurUsd">Cours EUR/USD (conversion en €)<input class="num" id="sEurUsd" inputmode="decimal"></label>
+          <label class="f" for="sStopDefaut">Stop proposé (pips sous / sur l'entrée)<input class="num" id="sStopDefaut" inputmode="decimal"></label>
+          <label class="f" for="sEurUsd"><span>Cours EUR/USD manuel <button type="button" class="def" data-def="eurusd" aria-label="Définition : cours de conversion">ⓘ</button></span><input class="num" id="sEurUsd" inputmode="decimal"></label>
+        </div>
+        <div class="ligne">
+          <label class="coche"><input type="checkbox" id="sEurUsdAuto"> Cours EUR/USD automatique : fixing BCE à la date du trade <button type="button" class="def" data-def="fixing" aria-label="Définition : fixing BCE">ⓘ</button></label>
+          <span class="sub" id="sEurUsdInfo"></span>
         </div>
         <h2>Annonces économiques</h2>
         <div class="fields">
@@ -272,9 +395,10 @@ dialog h3{margin:0 0 12px}
         </div>
         <h2>Frais (à vérifier sur ton compte Pepperstone)</h2>
         <div class="fields">
-          <label class="f" for="sComm">Commission aller-retour (€ par lot)<input class="num" id="sComm" inputmode="decimal"></label>
-          <label class="f" for="sSlip">Glissement prévu (pips)<input class="num" id="sSlip" inputmode="decimal"></label>
+          <label class="f" for="sComm"><span>Commission aller-retour (€ par lot) <button type="button" class="def" data-def="commission" aria-label="Définition : commission">ⓘ</button></span><input class="num" id="sComm" inputmode="decimal"></label>
+          <label class="f" for="sSlip"><span>Glissement prévu (pips) <button type="button" class="def" data-def="glissement" aria-label="Définition : glissement">ⓘ</button></span><input class="num" id="sSlip" inputmode="decimal"></label>
         </div>
+        <h2 style="margin-bottom:0">Spreads par paire, en pips <button type="button" class="def" data-def="spread" aria-label="Définition : spread">ⓘ</button></h2>
         <div class="fields" id="spreadFields"></div>
         <div><button class="btn primary" id="bSaveSettings">Enregistrer les réglages</button></div>
       </div>
@@ -290,6 +414,8 @@ dialog h3{margin:0 0 12px}
   </section>
 </div>
 
+<input type="file" id="fichierImage" accept="image/png,image/jpeg,image/webp" multiple hidden>
+
 <dialog id="dlgAide">
   <form method="dialog">
     <h3>Aide</h3>
@@ -298,13 +424,54 @@ dialog h3{margin:0 0 12px}
   </form>
 </dialog>
 
+<dialog id="dlgDef">
+  <form method="dialog">
+    <h3 id="defTerme"></h3>
+    <p id="defTexte" style="margin:0;font-size:14px"></p>
+    <div class="actions"><button class="btn ghost small" type="button" id="defDico">Tout le dictionnaire</button><button class="btn primary small" type="submit">Fermer</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgExemple">
+  <form method="dialog">
+    <h3 id="exTitre"></h3>
+    <div class="exgrand" id="exSvg"></div>
+    <div id="exTexte" style="font-size:14px"></div>
+    <div class="depot" id="exDepot">
+      <div class="ligne"><b style="font-size:14px;flex:1">Mes exemples</b><button type="button" class="btn ghost small" id="exAjouter">＋ Ajouter</button></div>
+      <div class="vignettes" id="exCaptures"></div>
+      <div class="sub">Garde ici tes propres captures de ce point (bons et mauvais exemples) : Ctrl+V, glisser-déposer ou « Ajouter ».</div>
+    </div>
+    <div class="actions"><button class="btn primary small" type="submit">Fermer</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgTrade">
+  <form method="dialog">
+    <h3 id="ficheTitre"></h3>
+    <dl class="fiche" id="ficheInfos"></dl>
+    <label class="f" for="ficheComment">Commentaire
+      <textarea id="ficheComment" rows="4"></textarea></label>
+    <div class="depot" id="ficheDepot" style="margin-top:12px">
+      <div class="ligne"><b style="font-size:14px;flex:1">Captures</b><button type="button" class="btn ghost small" id="ficheAjouter">＋ Ajouter</button></div>
+      <div class="vignettes" id="ficheCaptures"></div>
+      <div class="sub">Entrée, gestion, sortie… : Ctrl+V, glisser-déposer ou « Ajouter ».</div>
+    </div>
+    <div class="actions"><button class="btn ghost small" type="button" id="ficheEnregistrer">Enregistrer le commentaire</button><button class="btn primary small" type="submit">Fermer</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgImage"><img id="imgGrande" alt="Capture en grand"></dialog>
+
 <script src="calculs.js"></script>
+<script src="exemples.js"></script>
+<script src="glossaire.js"></script>
 <script>
 'use strict';
 /* ───────── Socle ───────── */
-const C = window.Calculs;
+const C = window.Calculs, EX = window.EXEMPLES, G = window.GLOSSAIRE;
 const BUREAU = !!window.appli;            // false = page ouverte dans un navigateur (mode autonome)
-const TEMPO = {toast: 2600, toastAction: 6500, verifMaj: 4000, confirmer: 3000, annonces: 15 * 60000, compteARebours: 60000};
+const TEMPO = {toast: 2600, toastAction: 6500, verifMaj: 4000, confirmer: 3000, annonces: 15 * 60000, cours: 60 * 60000, compteARebours: 60000, saisie: 800};
 const messageErreur = (e) => String(e && e.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 const local = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} } };
 
@@ -323,13 +490,18 @@ const CHECKS = [
 
 let CFG = {};
 let settings = structuredClone(C.DEFAUTS);
-let trades = [];          // {id, date, pair, dir, entry, stop, lots, riskEUR, compliant, reason, status, exit, exitDate, pnl, r}
+let trades = [];          // {id, date, pair, dir, entry, stop, lots, riskEUR, eurusd, compliant, reason, comment, captures, status, exit, exitDate, pnl, r}
+let exemples = {};        // captures perso par point de checklist : {"0": [noms], …}
 let dir = "long";
 let pret = false;         // false tant que les données ne sont pas chargées
+let formCaptures = [];    // captures jointes au trade en cours de saisie
+const stopEtat = {distance: null, manuel: false};   // distance du stop en pips ; manuel = tapé à la main
+const journal = {pair: "", res: "", regles: "", q: "", tri: "exitDate", asc: false};
 
 const closed = () => trades.filter(t => t.status === "closed").sort((a,b) => a.exitDate < b.exitDate ? -1 : 1);
 const open = () => trades.filter(t => t.status === "open");
 const capitalNow = () => settings.capital + closed().reduce((a,t) => a + t.pnl, 0);
+const sensTxt = d => d === "long" ? "achat" : "vente";
 
 /* ───────── Stockage : fichier local (bureau), sinon navigateur ───────── */
 const CLE_LOCALE = "guardpaper-trading";
@@ -338,73 +510,120 @@ async function charger(){
   try {
     if (BUREAU) d = await window.appli.lireDonnees();
     else d = JSON.parse(local.get(CLE_LOCALE) || "null");
-    const propre = d ? C.validerDonnees(d) : {settings: structuredClone(C.DEFAUTS), trades: []};
-    settings = propre.settings; trades = propre.trades; pret = true;
+    const propre = d ? C.validerDonnees(d) : {settings: structuredClone(C.DEFAUTS), trades: [], exemples: {}};
+    settings = propre.settings; trades = propre.trades; exemples = propre.exemples || {}; pret = true;
     if (!BUREAU) showBanner("Mode navigateur : les données restent dans ce navigateur. Utilise l'application de bureau pour un vrai fichier de sauvegarde.");
     else hideBanner();
   } catch(e){
     pret = false;
     showBanner("Données illisibles : rien ne sera enregistré tant que ce n'est pas réglé. " + messageErreur(e));
   }
-  renderSettings(); renderAll();
+  renderSettings(); renderAll(); renderNbExemples();
 }
 // Écrit l'état complet ; en cas d'échec, revient à ce qui est sur le disque
 async function persister(){
   try {
-    if (BUREAU) await window.appli.ecrireDonnees({settings, trades});
-    else local.set(CLE_LOCALE, JSON.stringify({settings, trades}));
+    if (BUREAU) await window.appli.ecrireDonnees({settings, trades, exemples});
+    else local.set(CLE_LOCALE, JSON.stringify({settings, trades, exemples}));
   } catch(e){ toast("Échec de l'enregistrement : " + messageErreur(e)); await charger(); throw e; }
 }
 const store = {
   async putTrade(t){ const i = trades.findIndex(x => x.id === t.id); if (i >= 0) trades[i] = t; else trades.push(t); await persister(); renderAll(); },
   async delTrade(id){ trades = trades.filter(x => x.id !== id); await persister(); renderAll(); },
-  async putSettings(s){ settings = s; await persister(); renderSettings(); renderAll(); }
+  async putSettings(s){ settings = s; await persister(); renderSettings(); renderAll(); },
+  async putExemples(e){ exemples = e; await persister(); renderNbExemples(); }
 };
+
+/* ───────── Cours BCE : corrélation (R6) et cours EUR/USD automatique ───────── */
+let cours = {taux: {}, derniere: null, erreur: null, charge: false}, versionCours = 0;
+async function chargerCours(){
+  if (!BUREAU) cours = {taux: {}, derniere: null, erreur: "Mode navigateur : cours disponibles dans l'application de bureau.", charge: true};
+  else {
+    try { cours = {...(await window.appli.cours()), charge: true}; }
+    catch(e){ cours = {taux: {}, derniere: null, erreur: "Cours indisponibles (" + messageErreur(e) + ").", charge: true}; }
+  }
+  versionCours++; renderSettingsCours(); renderCorrelation(); evaluate();
+}
+const memoMatrice = new Map();
+function matriceAu(jour){
+  const cle = `${jour}|${settings.corrN}|${versionCours}`;
+  if (!memoMatrice.has(cle)){ if (memoMatrice.size > 50) memoMatrice.clear(); memoMatrice.set(cle, C.matriceCorrelation(cours.taux, jour, settings.corrN)); }
+  return memoMatrice.get(cle);
+}
+const aujourdhui = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const jourDe = dt => dt ? dt.slice(0, 10) : aujourdhui();
+function eurusdPour(jour){
+  if (settings.eurusdAuto){ const r = C.eurusdAu(cours.taux, jour); if (r) return {cours: r.cours, src: `BCE ${fmtJour(r.date)}`}; }
+  return {cours: settings.eurusd, src: settings.eurusdAuto ? "manuel : pas de fixing BCE" : "manuel"};
+}
 
 /* ───────── Règles ───────── */
 function evaluate(){
   const pair = $("fPair").value, entry = C.nombre($("fEntry").value), stop = C.nombre($("fStop").value);
-  const dt = $("fDate").value;
+  const dt = $("fDate").value, jour = jourDe(dt);
   const checks = [...document.querySelectorAll("#checklist input")];
   const nChecked = checks.filter(c => c.checked).length;
   const riskPct = C.RISQUE_PAR_FREQ[settings.freq];
+  const conv = eurusdPour(jour), reglages = {...settings, eurusd: conv.cours};
   const haveNums = isFinite(entry) && isFinite(stop) && entry > 0 && stop > 0;
   const sideOK = haveNums && (dir === "long" ? stop < entry : stop > entry);
-  const sz = sideOK ? C.taillePosition({paire: pair, entree: entry, stop, capital: capitalNow(), risquePct: riskPct, reglages: settings}) : null;
+  const sz = sideOK ? C.taillePosition({paire: pair, entree: entry, stop, capital: capitalNow(), risquePct: riskPct, reglages}) : null;
 
   const rules = [];
-  rules.push({ok: nChecked === CHECKS.length, txt: `Checklist complète (${nChecked}/${CHECKS.length})`});
-  rules.push({ok: sideOK, txt: haveNums ? (sideOK ? "Stop du bon côté du prix" : (dir === "long" ? "Pour un achat, le stop doit être sous l'entrée" : "Pour une vente, le stop doit être au-dessus de l'entrée")) : "Saisis l'entrée et le stop"});
-  rules.push({ok: !!sz && sz.lots >= 0.01, txt: sz ? (sz.lots >= 0.01 ? "Taille minimale possible (0,01 lot)" : "Stop trop large pour ton capital : même 0,01 lot dépasse le risque") : "Taille calculée"});
+  const R = (ok, txt) => rules.push({etat: ok ? "ok" : "bad", txt});
+  R(nChecked === CHECKS.length, `Checklist complète (${nChecked}/${CHECKS.length})`);
+  R(sideOK, haveNums ? (sideOK ? "Stop du bon côté du prix" : (dir === "long" ? "Pour un achat, le stop doit être sous l'entrée" : "Pour une vente, le stop doit être au-dessus de l'entrée")) : "Saisis l'entrée et le stop");
+  R(!!sz && sz.lots >= 0.01, sz ? (sz.lots >= 0.01 ? "Taille minimale possible (0,01 lot)" : "Stop trop large pour ton capital : même 0,01 lot dépasse le risque") : "Taille calculée");
   const samePair = open().some(t => t.pair === pair);
-  rules.push({ok: !samePair, txt: samePair ? `Déjà une position sur ${pair} : pas de renforcement` : "Pas de position déjà ouverte sur cette paire"});
+  R(!samePair, samePair ? `Déjà une position sur ${pair} : pas de renforcement` : "Pas de position déjà ouverte sur cette paire");
   const over = C.devises(pair).filter(c => open().filter(t => C.devises(t.pair).includes(c)).length >= settings.maxCcy);
-  rules.push({ok: over.length === 0, txt: over.length ? `Déjà ${settings.maxCcy} positions sur ${over.join(" et ")} (corrélation)` : `Au plus ${settings.maxCcy} positions par devise`});
+  R(over.length === 0, over.length ? `Déjà ${settings.maxCcy} positions sur ${over.join(" et ")} (exposition)` : `Au plus ${settings.maxCcy} positions par devise`);
+  regleCorrelation(rules, pair, jour);
   const openRisk = open().reduce((a,t) => a + t.riskEUR, 0);
   const maxRisk = capitalNow() * settings.maxTotal / 100;
   const totalOK = !sz || openRisk + sz.risqueReel <= maxRisk + 1e-9;
-  rules.push({ok: totalOK, txt: `Risque total ouvert ≤ ${fmtPct(settings.maxTotal)} (${fmtEur(openRisk + (sz ? sz.risqueReel : 0))} / ${fmtEur(maxRisk)})`});
+  R(totalOK, `Risque total ouvert ≤ ${fmtPct(settings.maxTotal)} (${fmtEur(openRisk + (sz ? sz.risqueReel : 0))} / ${fmtEur(maxRisk)})`);
   let hourOK = false, hourTxt = "Saisis la date et l'heure";
   if (dt){ const h = new Date(dt).getHours(); hourOK = h >= settings.start && h < settings.end;
     hourTxt = hourOK ? `Heure d'entrée dans la plage ${settings.start}h-${settings.end}h` : `Hors plage horaire (${settings.start}h-${settings.end}h)`; }
-  rules.push({ok: hourOK, txt: hourTxt});
+  R(hourOK, hourTxt);
   const news = regleAnnonces(pair, dt);
-  rules.push({ok: news.ok, txt: news.txt});
+  R(news.ok, news.txt);
 
   // Affichage calcul
+  const dist = isFinite(entry) && isFinite(stop) && entry > 0 && stop > 0 ? Math.abs(entry - stop) / C.taillePip(pair) : NaN;
+  $("oDist").textContent = isFinite(dist) ? `${fmtNum(dist, 1)} pips` : "—";
   $("oLots").textContent = sz ? fmtNum(sz.lots, 2) : "—";
   $("oUnits").textContent = sz ? Math.round(sz.lots * 100000).toLocaleString("fr-FR") : "—";
-  $("oPips").textContent = sz ? fmtNum(sz.pipsStop, 1) + " pips" : "—";
   $("oRiskTarget").textContent = sz ? `${fmtEur(sz.risqueVise)} (${fmtPct(riskPct)})` : `${fmtPct(riskPct)} du capital`;
   $("oRiskReal").textContent = sz ? fmtEur(sz.risqueReel) : "—";
   $("oFees").textContent = sz ? fmtEur(sz.frais) : "—";
+  $("oEurUsd").textContent = `${fmtNum(conv.cours, 4)} (${conv.src})`;
 
-  $("rules").innerHTML = rules.map(r => `<li class="${r.ok ? "ok" : "bad"}"><span class="ic">${r.ok ? "✓" : "✕"}</span><span>${esc(r.txt)}</span></li>`).join("");
-  const allOK = rules.every(r => r.ok);
+  const ic = {ok: "✓", bad: "✕", warn: "!"};
+  $("rules").innerHTML = rules.map(r => `<li class="${r.etat}"><span class="ic">${ic[r.etat]}</span><span>${esc(r.txt)}</span></li>`).join("");
+  const allOK = rules.every(r => r.etat !== "bad");
   const canForce = !!sz && sz.lots >= 0.01 && $("fReason").value.trim().length >= 5;
   $("bSave").disabled = !allOK || !pret;
   $("bForce").disabled = allOK || !canForce || !pret;
-  return {allOK, sz, pair, entry, stop, dt};
+  return {allOK, sz, pair, entry, stop, dt, conv};
+}
+
+// R6 : corrélation orientée avec chaque position ouverte (bloquant au-delà du seuil « même pari »)
+function regleCorrelation(rules, pair, jour){
+  const ouvertes = open().filter(t => t.pair !== pair);
+  if (!ouvertes.length){ rules.push({etat: "ok", txt: "Corrélation : aucune autre position ouverte"}); return; }
+  const mat = matriceAu(jour);
+  const v = C.verifierCorrelation({matrice: mat, paire: pair, dir, ouvertes, reglages: settings});
+  if (!v.dispo){
+    rules.push({etat: "warn", txt: `Corrélation non calculable (${cours.charge ? (cours.erreur || "pas de cours BCE avant cette date") : "chargement des cours"}) : vérifie à la main`});
+    return;
+  }
+  const lien = l => `${l.pair} (${sensTxt(l.dir)}, ${fmtNum(l.c, 2)})`;
+  if (v.bloque) rules.push({etat: "bad", txt: `Même pari que ${v.meme.map(lien).join(", ")} : au plus ${settings.maxCorrelees} trade${settings.maxCorrelees > 1 ? "s" : ""} sur un même pari`});
+  else rules.push({etat: "ok", txt: v.meme.length ? `Même pari que ${v.meme.map(lien).join(", ")}, dans la limite de ${settings.maxCorrelees}` : `Pas de position corrélée à ≥ ${fmtNum(settings.corrFort, 2)} (${mat.n} jours BCE)`});
+  v.alertes.forEach(l => rules.push({etat: "warn", txt: `Pari proche de ${lien(l)} : corrélation orientée entre ${fmtNum(settings.corrAlerte, 1)} et ${fmtNum(settings.corrFort, 1)} (non bloquant)`}));
+  v.neutres.forEach(l => rules.push({etat: "warn", txt: `Se neutralise avec ${lien(l)} : tu paies des frais pour un pari nul (non bloquant)`}));
 }
 
 /* ───────── Annonces économiques (R9) : automatique sur la semaine du flux, sinon case manuelle ───────── */
@@ -431,8 +650,8 @@ function regleAnnonces(pair, dt){
   else if (v.raison === "date") statut = "Saisis la date et l'heure.";
   else statut = `Automatique : annonces fortes ${C.devises(pair).join(" et ")} ${fenetreTxt()} l'entrée.` + (annonces.erreur ? ` ⚠ ${annonces.erreur} Données du ${fmtDate(new Date(annonces.recupere))}.` : "");
   $("newsStatut").textContent = statut;
-  renderAnnonces(); marquerBloquantes(manuel ? [] : v.bloquantes, pair);
-  if (manuel){ const ok = !$("fNews").checked; return {ok, txt: ok ? `Pas d'annonce 3 étoiles signalée (vérification manuelle)` : "Annonce 3 étoiles proche : on attend"}; }
+  renderAnnonces(); marquerBloquantes(manuel ? [] : v.bloquantes);
+  if (manuel){ const ok = !$("fNews").checked; return {ok, txt: ok ? "Pas d'annonce 3 étoiles signalée (vérification manuelle)" : "Annonce 3 étoiles proche : on attend"}; }
   if (!v.bloquantes.length) return {ok: true, txt: `Pas d'annonce forte ${C.devises(pair).join("/")} ${fenetreTxt()} (auto)`};
   const e = v.bloquantes[0];
   return {ok: false, txt: `Annonce forte ${e.country} « ${e.title} » à ${heure(e.date)} : on attend`};
@@ -446,16 +665,114 @@ function dansCombien(ms){
 }
 // Liste des prochaines annonces fortes des 8 devises, avec compte à rebours
 function renderAnnonces(){
-  const pair = $("fPair").value, dev = C.devises(pair), maintenant = Date.now();
+  const dev = C.devises($("fPair").value), maintenant = Date.now();
   const liste = C.prochainesAnnonces(annonces.evenements, maintenant).slice(0, 10);
-  $("newsTitre").textContent = annonces.recupere ? `Annonces fortes à venir (calendrier du ${fmtDate(new Date(annonces.recupere))})` : "Annonces économiques";
+  $("newsTitre").textContent = annonces.recupere ? "Annonces fortes à venir" : "Annonces économiques";
+  $("newsTitre").title = annonces.recupere ? `Calendrier ForexFactory récupéré le ${fmtDate(new Date(annonces.recupere))}` : "";
   $("newsListe").innerHTML = liste.length ? liste.map(e => `<li class="${dev.includes(e.country) ? "paire" : ""}" data-date="${esc(e.date)}" data-ccy="${esc(e.country)}">
       <span class="num">${dansCombien(Date.parse(e.date) - maintenant)}</span><span>${esc(heure(e.date))}</span><b>${esc(e.country)}</b><span>${esc(e.title)}</span></li>`).join("")
     : (annonces.charge && annonces.evenements.length ? `<li><span></span><span></span><span></span><span>Plus d'annonce forte cette semaine.</span></li>` : "");
 }
-function marquerBloquantes(bloquantes, pair){
+function marquerBloquantes(bloquantes){
   const cles = new Set(bloquantes.map(e => e.date + e.country));
   document.querySelectorAll("#newsListe li[data-date]").forEach(li => li.classList.toggle("bloque", cles.has(li.dataset.date + li.dataset.ccy)));
+}
+
+/* ───────── Stop : proposé à la saisie de l'entrée, flèches bornées par le sens ───────── */
+const decimales = pair => pair.includes("JPY") ? 3 : 5;
+const ecrirePrix = (pair, v) => (Math.round(v * 10 ** decimales(pair)) / 10 ** decimales(pair)).toFixed(decimales(pair)).replace(".", ",");
+function placerStop(){
+  const pair = $("fPair").value, e = C.nombre($("fEntry").value);
+  if (!(e > 0)) return;
+  const d = stopEtat.distance ?? settings.stopDefaut;
+  $("fStop").value = ecrirePrix(pair, e + (dir === "long" ? -1 : 1) * d * C.taillePip(pair));
+}
+function surEntree(){
+  if (stopEtat.manuel) return;
+  if (C.nombre($("fEntry").value) > 0) placerStop(); else $("fStop").value = "";
+}
+function surStopTape(){
+  stopEtat.manuel = true;
+  const e = C.nombre($("fEntry").value), s = C.nombre($("fStop").value);
+  if (e > 0 && s > 0) stopEtat.distance = Math.abs(e - s) / C.taillePip($("fPair").value);
+}
+// sens : +1 monte le prix du stop, −1 le descend ; jamais plus près qu'1 pip de l'entrée, jamais du mauvais côté
+function bougerStop(sens, pas){
+  const pair = $("fPair").value, pip = C.taillePip(pair), e = C.nombre($("fEntry").value);
+  if (!(e > 0)){ toast("Saisis d'abord le prix d'entrée"); $("fEntry").focus(); return; }
+  let s = C.nombre($("fStop").value);
+  if (!(s > 0)) s = e + (dir === "long" ? -1 : 1) * settings.stopDefaut * pip;
+  let n = s + sens * pas * pip;
+  if (dir === "long") n = Math.min(n, e - pip); else n = Math.max(n, e + pip);
+  if (n <= 0) return;
+  $("fStop").value = ecrirePrix(pair, n);
+  stopEtat.distance = Math.round(Math.abs(e - n) / pip * 10) / 10;
+  stopEtat.manuel = false;               // le stop suit maintenant l'entrée à cette distance
+  evaluate();
+}
+// Changer de sens : le stop passe de l'autre côté de l'entrée, à la même distance
+function setDir(d){
+  const change = d !== dir; dir = d;
+  $("bLong").className = d === "long" ? "on-long" : ""; $("bShort").className = d === "short" ? "on-short" : "";
+  if (change){
+    const e = C.nombre($("fEntry").value), s = C.nombre($("fStop").value);
+    if (e > 0 && s > 0){ stopEtat.distance = Math.abs(e - s) / C.taillePip($("fPair").value); placerStop(); }
+  }
+  evaluate();
+}
+
+/* ───────── Captures d'écran ───────── */
+const vignettes = (noms, groupe) => noms.map(n => `<div class="vig"><img src="captures/${esc(n)}" alt="Capture" data-voir="${esc(n)}"><button type="button" class="x" data-retirer="${esc(groupe)}" data-nom="${esc(n)}" title="Retirer cette capture" aria-label="Retirer">✕</button></div>`).join("");
+async function lireImages(fichiers){
+  if (!BUREAU){ toast("Les captures sont disponibles dans l'application de bureau."); return []; }
+  const noms = [];
+  for (const f of fichiers){
+    if (!/^image\/(png|jpeg|webp)$/.test(f.type)){ toast("Format accepté : PNG, JPEG ou WebP."); continue; }
+    try { noms.push(await window.appli.enregistrerCapture(new Uint8Array(await f.arrayBuffer()), f.type)); }
+    catch(e){ toast("Capture refusée : " + messageErreur(e)); }
+  }
+  return noms;
+}
+const capturesDe = groupe => groupe === "form" ? formCaptures
+  : groupe.startsWith("ex:") ? (exemples[groupe.slice(3)] || [])
+  : ((trades.find(t => t.id === groupe.slice(6)) || {}).captures || []);
+async function changerCaptures(groupe, liste){
+  if (groupe === "form"){ formCaptures = liste; renderFormCaptures(); return; }
+  if (groupe.startsWith("ex:")){ const i = groupe.slice(3); await store.putExemples({...exemples, [i]: liste}); renderExemple(); return; }
+  const t = trades.find(x => x.id === groupe.slice(6)); if (!t) return;
+  await store.putTrade({...t, captures: liste}); renderFiche();
+}
+async function ajouterCaptures(groupe, fichiers){
+  const noms = await lireImages(fichiers);
+  if (!noms.length) return;
+  try { await changerCaptures(groupe, [...capturesDe(groupe), ...noms]); toast(noms.length > 1 ? `${noms.length} captures ajoutées` : "Capture ajoutée"); } catch {}
+}
+// Retirer : l'image reste dans le dossier des captures, on peut annuler tout de suite
+async function retirerCapture(groupe, nom){
+  const avant = capturesDe(groupe);
+  try { await changerCaptures(groupe, avant.filter(n => n !== nom)); toast("Capture retirée", "Annuler", () => changerCaptures(groupe, avant).catch(() => {})); } catch {}
+}
+function renderFormCaptures(){ $("fCaptures").innerHTML = vignettes(formCaptures, "form"); }
+// Groupe visé par un collage (Ctrl+V) selon ce qui est ouvert
+function groupeActif(){
+  if ($("dlgExemple").open) return "ex:" + exempleCourant;
+  if ($("dlgTrade").open) return "trade:" + ficheCourante;
+  if (!document.querySelector("dialog[open]") && !$("view-new").hidden) return "form";
+  return null;
+}
+
+/* ───────── Checklist : exemples de base + captures perso ───────── */
+let exempleCourant = null;
+function renderNbExemples(){ CHECKS.forEach((c, i) => { const n = (exemples[i] || []).length; $("nb" + i).textContent = n ? `📷 ${n}` : ""; }); }
+function ouvrirExemple(i){ exempleCourant = String(i); renderExemple(); $("dlgExemple").showModal(); }
+function renderExemple(){
+  if (exempleCourant === null) return;
+  const i = Number(exempleCourant);
+  $("exTitre").textContent = `${i + 1}. ${CHECKS[i][0]}`;
+  $("exSvg").innerHTML = EX[i].svg;
+  $("exTexte").innerHTML = EX[i].texte;
+  $("exCaptures").innerHTML = vignettes(exemples[i] || [], "ex:" + i) || `<span class="sub">Aucune capture pour l'instant.</span>`;
+  $("exDepot").dataset.depot = "ex:" + i;
 }
 
 /* ───────── Enregistrement ───────── */
@@ -464,17 +781,20 @@ async function saveTrade(force){
   if (!e.sz) return;
   const t = {id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
     date: e.dt, pair: e.pair, dir, entry: e.entry, stop: e.stop, lots: e.sz.lots,
-    riskEUR: Math.round(e.sz.risqueReel * 100) / 100, compliant: !force,
-    reason: force ? $("fReason").value.trim() : "", status: "open", exit: null, exitDate: null, pnl: 0, r: 0};
+    riskEUR: Math.round(e.sz.risqueReel * 100) / 100, eurusd: e.conv.cours, compliant: !force,
+    reason: force ? $("fReason").value.trim() : "", comment: $("fComment").value.trim(), captures: [...formCaptures],
+    status: "open", exit: null, exitDate: null, pnl: 0, r: 0};
   try { await store.putTrade(t); toast(force ? "Trade enregistré hors règles" : "Trade enregistré"); resetForm(); } catch {}
 }
 function resetForm(){
-  $("fEntry").value = ""; $("fStop").value = ""; $("fReason").value = ""; $("fNews").checked = false;
+  $("fEntry").value = ""; $("fStop").value = ""; $("fReason").value = ""; $("fNews").checked = false; $("fComment").value = "";
+  stopEtat.distance = null; stopEtat.manuel = false; formCaptures = []; renderFormCaptures();
   document.querySelectorAll("#checklist input").forEach(c => c.checked = false);
   evaluate();
 }
 
 /* ───────── Rendu ───────── */
+const notes = t => `${(t.captures || []).length ? `📷 ${t.captures.length}` : ""} ${t.comment ? "💬" : ""}`.trim();
 function renderOpen(){
   const list = open();
   $("openCount").textContent = list.length;
@@ -482,53 +802,111 @@ function renderOpen(){
   $("openList").innerHTML = list.map(t => `
     <div class="card" style="padding:12px">
       <div class="openrow">
-        <div><div class="sub">${esc(fmtDate(t.date))}</div><b>${esc(t.pair)}</b> <span class="pill ${t.dir}">${t.dir === "long" ? "Achat" : "Vente"}</span> ${t.compliant ? "" : '<span class="pill badp">hors règles</span>'}</div>
+        <div><div class="sub">${esc(fmtDate(t.date))} ${esc(notes(t))}</div><b>${esc(t.pair)}</b> <span class="pill ${t.dir}">${t.dir === "long" ? "Achat" : "Vente"}</span> ${t.compliant ? "" : '<span class="pill badp">hors règles</span>'}</div>
         <div class="num sub">Entrée ${fmtPrice(t.pair, t.entry)}<br>Stop ${fmtPrice(t.pair, t.stop)}</div>
         <div class="num sub">${fmtNum(t.lots,2)} lot<br>Risque ${fmtEur(t.riskEUR)}</div>
         <label class="f" for="x-${t.id}">Prix de sortie<input class="num" id="x-${t.id}" inputmode="decimal" placeholder="${fmtPrice(t.pair, t.stop)}"></label>
         <label class="f" for="xd-${t.id}">Date de sortie<input type="datetime-local" id="xd-${t.id}" value="${nowLocal()}"></label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary small" data-close="${t.id}">Clôturer</button><button class="btn ghost small" data-del="${t.id}">Supprimer</button></div>
+        <div class="acts"><button class="btn primary small" data-close="${t.id}">Clôturer</button><button class="btn ghost small" data-fiche="${t.id}">Fiche</button><button class="btn ghost small" data-del="${t.id}">Supprimer</button></div>
       </div>
     </div>`).join("");
 }
+// Filtres du journal : paire, règles et recherche s'appliquent aussi aux statistiques
+function passeFiltres(t){
+  if (journal.pair && t.pair !== journal.pair) return false;
+  if (journal.regles === "ok" && !t.compliant) return false;
+  if (journal.regles === "hors" && t.compliant) return false;
+  const q = journal.q.trim().toLowerCase();
+  if (q && !`${t.comment || ""} ${t.reason || ""}`.toLowerCase().includes(q)) return false;
+  return true;
+}
+const passeResultat = t => !journal.res || (journal.res === "gain" ? t.pnl > 0 : t.pnl <= 0);
 function renderJournal(){
-  const c = closed();
-  const s = C.statistiques(c, trades);
+  const tous = trades.filter(passeFiltres);
+  const c = closed().filter(passeFiltres).filter(passeResultat);
+  const s = C.statistiques(c, journal.res ? c : tous);
+  const filtre = journal.pair || journal.res || journal.regles || journal.q.trim();
+  $("jInfo").textContent = filtre ? `Filtre actif : ${c.length} trade${c.length > 1 ? "s" : ""} clôturé${c.length > 1 ? "s" : ""} sur ${closed().length}. Les statistiques portent sur la sélection.` : `${closed().length} trade${closed().length > 1 ? "s" : ""} clôturé${closed().length > 1 ? "s" : ""}.`;
+  const def = cle => `<button type="button" class="def" data-def="${cle}" aria-label="Définition">ⓘ</button>`;
   const tile = (k, v, cls="") => `<div class="tile"><div class="k">${k}</div><div class="v ${cls}">${v}</div></div>`;
   const pf = s.profitFactor;
   $("tiles").innerHTML =
     tile("Trades clôturés", `${s.n}<span class="sub"> / 100</span>`) +
     tile("Gagnants", s.n ? fmtPct(s.pctGagnants, 0) : "—") +
-    tile("Profit factor", isFinite(pf) ? fmtNum(pf, 2) : (pf === Infinity ? "∞" : "—"), isFinite(pf) ? (pf >= 1 ? "pos" : "neg") : "") +
-    tile("Total", s.n ? `${sgn(s.totalR)} R` : "—", s.totalR >= 0 ? "pos" : "neg") +
+    tile("Profit factor " + def("pf"), isFinite(pf) ? fmtNum(pf, 2) : (pf === Infinity ? "∞" : "—"), isFinite(pf) ? (pf >= 1 ? "pos" : "neg") : "") +
+    tile("Total " + def("r"), s.n ? `${sgn(s.totalR)} R` : "—", s.totalR >= 0 ? "pos" : "neg") +
     tile("Total (€)", s.n ? fmtEur(s.totalEUR) : "—", s.totalEUR >= 0 ? "pos" : "neg") +
     tile("Gain moyen", isFinite(s.gainMoyenR) ? `${sgn(s.gainMoyenR)} R` : "—") +
     tile("Perte moyenne", isFinite(s.perteMoyenneR) ? `${sgn(s.perteMoyenneR)} R` : "—") +
-    tile("Drawdown max", s.n ? `${fmtNum(s.drawdownR, 2)} R` : "—") +
-    tile("Discipline", isFinite(s.discipline) ? fmtPct(s.discipline, 0) : "—", isFinite(s.discipline) ? (s.discipline >= 90 ? "pos" : "neg") : "");
+    tile("Drawdown max " + def("drawdown"), s.n ? `${fmtNum(s.drawdownR, 2)} R` : "—") +
+    tile("Discipline " + def("discipline"), isFinite(s.discipline) ? fmtPct(s.discipline, 0) : "—", isFinite(s.discipline) ? (s.discipline >= 90 ? "pos" : "neg") : "");
   const grp = arr => arr.length ? `${arr.length} trade${arr.length > 1 ? "s" : ""}, ${sgn(arr.reduce((a,t) => a + t.r, 0) / arr.length)} R en moyenne` : "aucun trade";
   $("compare").innerHTML =
     `<div><div class="sub">Dans les règles</div><b>${grp(c.filter(t => t.compliant))}</b></div>` +
     `<div><div class="sub">Hors règles</div><b>${grp(c.filter(t => !t.compliant))}</b></div>`;
-  $("closedBody").innerHTML = s.n ? [...c].reverse().map(t => `
-    <tr><td>${esc(fmtDate(t.date))}</td><td>${esc(t.pair)}</td><td><span class="pill ${t.dir}">${t.dir === "long" ? "Achat" : "Vente"}</span></td>
-    <td class="num">${fmtNum(t.lots,2)}</td><td class="num r ${t.r >= 0 ? "pos" : "neg"}">${sgn(t.r)}</td><td class="num r ${t.pnl >= 0 ? "pos" : "neg"}">${fmtEur(t.pnl)}</td>
+  // Tri
+  const k = journal.tri, sens = journal.asc ? 1 : -1;
+  const tries = [...c].sort((a, b) => { const x = a[k] ?? "", y = b[k] ?? ""; return (x < y ? -1 : x > y ? 1 : 0) * sens; });
+  document.querySelectorAll("#view-journal th[data-tri]").forEach(th => { th.classList.toggle("actif", th.dataset.tri === k); th.classList.toggle("asc", th.dataset.tri === k && journal.asc); });
+  $("closedBody").innerHTML = tries.length ? tries.map(t => `
+    <tr class="cliquable" data-fiche="${t.id}"><td>${esc(fmtDate(t.date))}</td><td>${esc(fmtDate(t.exitDate))}</td><td>${esc(t.pair)}</td><td><span class="pill ${t.dir}">${t.dir === "long" ? "Achat" : "Vente"}</span></td>
+    <td class="num r">${fmtNum(t.lots,2)}</td><td class="num r ${t.r >= 0 ? "pos" : "neg"}">${sgn(t.r)}</td><td class="num r ${t.pnl >= 0 ? "pos" : "neg"}">${fmtEur(t.pnl)}</td>
     <td>${t.compliant ? '<span class="pill okp">OK</span>' : `<span class="pill badp" title="${esc(t.reason)}">hors règles</span>`}</td>
+    <td title="${esc(t.comment)}">${esc(notes(t))}</td>
     <td><button class="btn ghost small" data-del="${t.id}">Supprimer</button></td></tr>`).join("")
-    : `<tr><td colspan="8" class="empty">Aucun trade clôturé pour l'instant.</td></tr>`;
+    : `<tr><td colspan="10" class="empty">${closed().length ? "Aucun trade ne correspond aux filtres." : "Aucun trade clôturé pour l'instant."}</td></tr>`;
+}
+// Fiche d'un trade : informations, commentaire, captures
+let ficheCourante = null;
+function ouvrirFiche(id){ ficheCourante = id; renderFiche(true); $("dlgTrade").showModal(); }
+function renderFiche(remplirCommentaire = false){
+  const t = trades.find(x => x.id === ficheCourante); if (!t) return;
+  $("ficheTitre").innerHTML = `${esc(t.pair)} <span class="pill ${t.dir}">${t.dir === "long" ? "Achat" : "Vente"}</span> ${t.compliant ? '<span class="pill okp">dans les règles</span>' : '<span class="pill badp">hors règles</span>'}`;
+  const ligne = (k, v) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+  $("ficheInfos").innerHTML = ligne("Entrée", `${esc(fmtDate(t.date))}<br>${fmtPrice(t.pair, t.entry)}`) + ligne("Stop", fmtPrice(t.pair, t.stop))
+    + ligne("Taille", `${fmtNum(t.lots, 2)} lot<br>risque ${fmtEur(t.riskEUR)}`)
+    + (t.status === "closed" ? ligne("Sortie", `${esc(fmtDate(t.exitDate))}<br>${fmtPrice(t.pair, t.exit)}`) + ligne("Résultat", `<span class="${t.r >= 0 ? "pos" : "neg"}">${sgn(t.r)} R<br>${fmtEur(t.pnl)}</span>`) : ligne("Statut", "ouverte"))
+    + (t.compliant ? "" : ligne("Raison hors règles", esc(t.reason)));
+  if (remplirCommentaire) $("ficheComment").value = t.comment || "";
+  $("ficheCaptures").innerHTML = vignettes(t.captures || [], "trade:" + t.id) || `<span class="sub">Aucune capture.</span>`;
+  $("ficheDepot").dataset.depot = "trade:" + t.id;
+}
+// Matrice de corrélation 7×7, colorée
+function renderCorrelation(){
+  const jour = $("cDate").value || aujourdhui();
+  const mat = matriceAu(jour);
+  if (!mat){
+    $("corrInfo").textContent = cours.charge ? `⚠ ${cours.erreur || "Pas assez de cours BCE avant cette date."} La règle de corrélation passe en avertissement.` : "Chargement des cours…";
+    $("matrice").innerHTML = ""; return;
+  }
+  $("corrInfo").textContent = `Pearson sur ${mat.n} rendements journaliers, fixings BCE du ${fmtJour(mat.debut)} au ${fmtJour(mat.fin)}.` + (cours.erreur ? ` ⚠ ${cours.erreur}` : "");
+  const court = p => p.replace("/", "");
+  const couleur = c => `color-mix(in srgb, ${c >= 0 ? "var(--ok)" : "var(--bad)"} ${Math.round(Math.abs(c) * 75)}%, transparent)`;
+  $("matrice").innerHTML = `<tr><th></th>${C.PAIRES.map(p => `<th>${court(p)}</th>`).join("")}</tr>` + C.PAIRES.map(a => `<tr><th>${court(a)}</th>${C.PAIRES.map(b => {
+      const c = mat.m[a][b];
+      return a === b ? `<td style="color:var(--muted)">—</td>` : `<td style="background:${couleur(c)}" title="${a} / ${b} : ${fmtNum(c, 2)}">${fmtNum(c, 2)}</td>`;
+    }).join("")}</tr>`).join("");
+}
+function renderSettingsCours(){
+  const r = C.eurusdAu(cours.taux, aujourdhui());
+  $("sEurUsdInfo").textContent = r ? `Dernier fixing : ${fmtNum(r.cours, 4)} (${fmtJour(r.date)})` : (cours.charge ? (cours.erreur || "Aucun fixing disponible") : "");
 }
 function renderSettings(){
   $("sCapital").value = fmtNum(settings.capital, 0); $("sFreq").value = settings.freq;
   $("sMaxTotal").value = fmtNum(settings.maxTotal, 1); $("sMaxCcy").value = settings.maxCcy;
-  $("sStart").value = settings.start; $("sEnd").value = settings.end; $("sEurUsd").value = fmtNum(settings.eurusd, 4);
+  $("sCorrN").value = settings.corrN; $("sCorrFort").value = fmtNum(settings.corrFort, 2); $("sCorrAlerte").value = fmtNum(settings.corrAlerte, 2); $("sMaxCorrelees").value = settings.maxCorrelees;
+  $("sStart").value = settings.start; $("sEnd").value = settings.end; $("sStopDefaut").value = fmtNum(settings.stopDefaut, 1);
+  $("sEurUsd").value = fmtNum(settings.eurusd, 4); $("sEurUsdAuto").checked = !!settings.eurusdAuto;
   $("sComm").value = fmtNum(settings.comm, 2); $("sSlip").value = fmtNum(settings.slip, 1);
   $("sNewsBefore").value = settings.newsBefore; $("sNewsAfter").value = settings.newsAfter;
-  $("spreadFields").innerHTML = C.PAIRES.map(p => `<label class="f" for="sp-${p.replace("/","")}">Spread ${p} (pips)<input class="num" id="sp-${p.replace("/","")}" inputmode="decimal" value="${fmtNum(settings.spreads[p] ?? 1, 1)}"></label>`).join("");
-  $("fichierLigne").textContent = BUREAU ? `Fichier de données : ${CFG.fichier || "—"}` : "Mode navigateur : données gardées dans ce navigateur.";
+  $("spreadFields").innerHTML = C.PAIRES.map(p => `<label class="f" for="sp-${p.replace("/","")}">${p}<input class="num" id="sp-${p.replace("/","")}" inputmode="decimal" value="${fmtNum(settings.spreads[p] ?? 1, 1)}"></label>`).join("");
+  $("fichierLigne").textContent = BUREAU ? `Fichier de données : ${CFG.fichier || "—"} (captures dans le dossier « captures » à côté)` : "Mode navigateur : données gardées dans ce navigateur.";
+  renderSettingsCours();
 }
 function renderAll(){
   $("capLine").textContent = "Capital : " + fmtEur(capitalNow());
-  renderOpen(); renderJournal(); evaluate();
+  renderOpen(); renderJournal(); renderCorrelation(); evaluate();
+  if ($("dlgTrade").open) renderFiche();
 }
 
 /* ───────── Actions ───────── */
@@ -549,21 +927,25 @@ async function deleteTrade(id, btn){
   try { await store.delTrade(id); toast("Trade supprimé", "Annuler", () => store.putTrade(ancien).catch(() => {})); } catch {}
 }
 async function saveSettings(){
+  const n = id => C.nombre($(id).value), entier = id => Math.round(n(id));
   const s = {
-    capital: C.nombre($("sCapital").value), freq: $("sFreq").value, maxTotal: C.nombre($("sMaxTotal").value), maxCcy: Math.round(C.nombre($("sMaxCcy").value)),
-    start: Math.round(C.nombre($("sStart").value)), end: Math.round(C.nombre($("sEnd").value)), eurusd: C.nombre($("sEurUsd").value),
-    comm: C.nombre($("sComm").value), slip: C.nombre($("sSlip").value),
-    newsBefore: Math.round(C.nombre($("sNewsBefore").value)), newsAfter: Math.round(C.nombre($("sNewsAfter").value)), spreads: {}
+    capital: n("sCapital"), freq: $("sFreq").value, maxTotal: n("sMaxTotal"), maxCcy: entier("sMaxCcy"),
+    corrN: entier("sCorrN"), corrFort: n("sCorrFort"), corrAlerte: n("sCorrAlerte"), maxCorrelees: entier("sMaxCorrelees"),
+    start: entier("sStart"), end: entier("sEnd"), stopDefaut: n("sStopDefaut"), eurusd: n("sEurUsd"), eurusdAuto: $("sEurUsdAuto").checked,
+    comm: n("sComm"), slip: n("sSlip"), newsBefore: entier("sNewsBefore"), newsAfter: entier("sNewsAfter"), spreads: {}
   };
-  C.PAIRES.forEach(p => s.spreads[p] = C.nombre($("sp-" + p.replace("/","")).value));
-  const bad = Object.entries(s).filter(([k,v]) => k !== "freq" && k !== "spreads" && !(isFinite(v) && v >= 0)).map(([k]) => k);
-  if (bad.length || Object.values(s.spreads).some(v => !(isFinite(v) && v >= 0)) || s.capital <= 0 || s.eurusd <= 0 || s.start >= s.end || s.end > 24 || s.newsBefore > 1440 || s.newsAfter > 1440){ toast("Un réglage n'est pas un nombre valide"); return; }
+  C.PAIRES.forEach(p => s.spreads[p] = n("sp-" + p.replace("/","")));
+  const bad = Object.entries(s).filter(([k,v]) => !["freq","spreads","eurusdAuto"].includes(k) && !(isFinite(v) && v >= 0)).map(([k]) => k);
+  if (bad.length || Object.values(s.spreads).some(v => !(isFinite(v) && v >= 0)) || s.capital <= 0 || s.eurusd <= 0 || s.start >= s.end || s.end > 24
+    || s.newsBefore > 1440 || s.newsAfter > 1440 || s.stopDefaut <= 0){ toast("Un réglage n'est pas un nombre valide"); return; }
+  if (s.corrN < 20 || s.corrN > 250){ toast("Jours de calcul : entre 20 et 250"); return; }
+  if (!(s.corrFort > 0 && s.corrFort <= 1 && s.corrAlerte > 0 && s.corrAlerte < s.corrFort) || s.maxCorrelees < 1){ toast("Seuils de corrélation : 0 < alerte < même pari ≤ 1, et au moins 1 trade"); return; }
   try { await store.putSettings(s); toast("Réglages enregistrés"); } catch {}
 }
 async function exporter(){
   if (!BUREAU){
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([JSON.stringify({settings, trades}, null, 2)], {type: "application/json"}));
+    a.href = URL.createObjectURL(new Blob([JSON.stringify({settings, trades, exemples}, null, 2)], {type: "application/json"}));
     a.download = `guardpaper-trading-${new Date().toISOString().slice(0,10)}.json`; a.click(); return;
   }
   try { const f = await window.appli.exporter(); if (f) toast("Exporté : " + f); } catch(e){ toast("Export impossible : " + messageErreur(e)); }
@@ -578,40 +960,65 @@ async function importer(){
   } catch(e){ toast("Import impossible : " + messageErreur(e)); }
 }
 
+/* ───────── Dictionnaire (boutons ⓘ) ───────── */
+function ouvrirDef(cle){
+  const d = G.DICTIONNAIRE.find(x => x.cle === cle); if (!d) return;
+  $("defTerme").textContent = d.terme; $("defTexte").innerHTML = d.def;
+  $("dlgDef").showModal();
+}
+
 /* ───────── Aide intégrée : à compléter à CHAQUE nouvelle fonction ───────── */
 const AIDE = [
-  {t: "1. Principe", h: `<p>GuardPaper Trading est un <b>garde-fou</b> pour le swing trading forex selon la méthode MTF 2.0. Il <b>contrôle</b> chaque trade avant que tu le prennes ; il ne décide jamais à ta place et ne passe aucun ordre.</p>
-    <p>Un trade ne s'enregistre que si <b>toutes les règles sont vertes</b>. Sinon, tu peux l'enregistrer « hors règles » avec une raison écrite : il comptera contre ton taux de discipline.</p>`},
-  {t: "2. Nouveau trade", h: `<p>Saisis la date (en Bar Replay : celle de la bougie), la paire, le sens, le prix d'entrée et le stop. Les prix acceptent la virgule.</p>
-    <p>Coche les 10 points de la checklist MTF 2.0. À droite, la <b>taille de position</b> se calcule en direct : risque fixe du capital courant, spread, glissement et commission compris.</p>
-    <p class="astuce">Les annonces économiques sont vérifiées automatiquement (voir « Annonces économiques »).</p>`},
-  {t: "3. Les règles", h: `<ul>
+  {t: "Principe", h: `<p>GuardPaper Trading est un <b>garde-fou</b> pour le swing trading forex selon la méthode MTF 2.0. Il <b>contrôle</b> chaque trade avant que tu le prennes ; il ne décide jamais à ta place et ne passe aucun ordre.</p>
+    <p>Un trade ne s'enregistre que si <b>toutes les règles sont vertes</b> (les lignes orange sont des avertissements, non bloquants). Sinon, tu peux l'enregistrer « hors règles » avec une raison écrite : il comptera contre ton taux de discipline.</p>
+    <p class="astuce">Les petits <b>ⓘ</b> à côté des termes ouvrent leur définition. Tout est rassemblé dans « Dictionnaire ».</p>`},
+  {t: "Nouveau trade", h: `<p>Saisis la date (en Bar Replay : celle de la bougie), la paire, le sens et le prix d'entrée.</p>
+    <p>Le <b>stop est proposé tout seul</b> à la distance réglée (20 pips par défaut), sous l'entrée pour un achat, au-dessus pour une vente. Ajuste-le avec les flèches <b>▲ ▼</b> (1 pip ; 10 pips avec Maj) ou les flèches du clavier : il ne peut jamais passer du mauvais côté ni à moins d'1 pip de l'entrée. Ensuite, il suit l'entrée à cette distance. Si tu tapes un stop à la main, il ne bouge plus tout seul. Changer de sens le fait passer de l'autre côté.</p>
+    <p>Ajoute un <b>commentaire</b> et tes <b>captures</b> de la prise de position (Ctrl+V après une capture d'écran, glisser-déposer, ou « Ajouter »).</p>
+    <p>À droite, la <b>taille de position</b> se calcule en direct : risque fixe du capital courant, spread, glissement et commission compris, converti en euros au cours EUR/USD du jour du trade.</p>`},
+  {t: "Les règles", h: `<ul>
     <li><b>Checklist</b> : les 10 cases cochées.</li>
     <li><b>Stop</b> : sous l'entrée pour un achat, au-dessus pour une vente.</li>
     <li><b>Taille minimale</b> : au moins 0,01 lot, sinon le stop est trop large pour ton capital.</li>
     <li><b>Pas de renforcement</b> : une seule position par paire.</li>
     <li><b>Exposition par devise</b> : au plus N positions contenant la même devise (réglage).</li>
+    <li><b>Corrélation</b> : pas de 2e trade qui fait le même pari qu'une position ouverte (automatique).</li>
     <li><b>Risque total</b> : la somme des risques ouverts ne dépasse pas le maximum (réglage).</li>
     <li><b>Horaires</b> : heure d'entrée dans la plage réglée (heure de Paris).</li>
     <li><b>Annonce</b> : pas d'annonce forte sur une des deux devises autour de l'entrée (automatique, sinon case manuelle).</li></ul>`},
-  {t: "4. Annonces économiques", h: `<p>L'application lit le calendrier public <b>ForexFactory</b> (semaine en cours) et <b>bloque</b> le trade si une annonce à fort impact concerne une des deux devises de la paire, de 30 min avant à 2 h après l'heure d'entrée (réglable).</p>
+  {t: "Annonces économiques", h: `<p>L'application lit le calendrier public <b>ForexFactory</b> (semaine en cours) et <b>bloque</b> le trade si une annonce à fort impact concerne une des deux devises de la paire, de 30 min avant à 2 h après l'heure d'entrée (réglable).</p>
     <p>Le cadre liste les prochaines annonces fortes des 8 devises avec un compte à rebours ; celles de la paire choisie sont surlignées, celle qui bloque est en rouge.</p>
     <p>Le calendrier est rechargé <b>au plus une fois par heure</b> (bouton ↻ : au plus toutes les 5 minutes), pour respecter la source.</p>
-    <p class="astuce">Limites : ce flux n'est <b>pas officiel</b> et ne couvre que la <b>semaine en cours</b>. Si le flux est coupé, ou en <b>Replay</b> sur une date passée, la règle repasse en <b>case à cocher</b> (cadre jaune) : vérifie alors sur le calendrier Investing.</p>`},
-  {t: "5. Positions et journal", h: `<p>Dans <b>Positions ouvertes</b>, saisis le prix et la date de sortie puis <b>Clôturer</b> : le résultat est calculé net de frais, en euros et en R (résultat ÷ risque réel).</p>
-    <p><b>Journal et stats</b> donne le nombre de trades (objectif 100), le % de gagnants, le profit factor, le total, le drawdown max et le <b>taux de discipline</b>, avec la comparaison « dans les règles / hors règles ».</p>
-    <p class="astuce">Supprimer demande deux clics ; juste après, « Annuler » dans la notification remet le trade.</p>`},
-  {t: "6. Réglages", h: `<p>Capital de départ, fréquence des opportunités (0,5 / 1 / 1,5 % par trade), risque total max, positions max par devise, horaires, fenêtre des annonces, cours EUR/USD de conversion, commission, glissement et spread de chaque paire.</p>
+    <p class="astuce">Limites : ce flux n'est <b>pas officiel</b> et ne couvre que la <b>semaine en cours</b>. Si le flux est coupé, ou en <b>Replay</b> sur une date passée, la règle repasse en <b>case à cocher</b> (cadre jaune) : vérifie alors sur le calendrier Investing. Les types d'annonces sont expliqués dans « Glossaire des annonces ».</p>`},
+  {t: "Corrélation", h: `<p>L'application calcule la <b>corrélation de Pearson</b> entre les 7 paires sur les <b>rendements journaliers</b> des 60 derniers jours (réglable), à partir des <b>fixings de la BCE</b> (API Frankfurter, gratuite, sans clé). C'est le même principe que l'outil de Mataf, calculé ici.</p>
+    <p>Pour chaque position ouverte, la corrélation est <b>orientée</b> par le sens des deux trades (+1 achat, −1 vente) :</p>
+    <ul><li><b>≥ 0,8</b> : même pari, risque doublé → <b>bloquant</b> au-delà du nombre de trades autorisé sur un même pari (1 par défaut) ;</li>
+    <li><b>entre 0,6 et 0,8</b> : pari proche → avertissement orange ;</li>
+    <li><b>≤ −0,8</b> : les deux trades se neutralisent → avertissement (« tu paies des frais pour un pari nul »).</li></ul>
+    <p>En <b>Replay</b>, le calcul s'arrête la veille de la date du trade : aucune donnée du futur. L'onglet <b>Corrélation</b> affiche la matrice à la date de ton choix.</p>
+    <p class="astuce">Les cours sont mis à jour au plus une fois par heure. S'ils sont indisponibles, la règle devient un avertissement et tu vérifies à la main.</p>`},
+  {t: "Checklist : exemples et captures", h: `<p>Chaque point de la checklist a une <b>vignette</b> : clique dessus pour voir un <b>schéma d'exemple</b> et une explication.</p>
+    <p>Dans la même fenêtre, garde <b>tes propres captures</b> de ce point (bons exemples, pièges) : Ctrl+V, glisser-déposer ou « Ajouter ». Le nombre de captures s'affiche à droite du point (📷).</p>`},
+  {t: "Positions et journal", h: `<p>Dans <b>Positions ouvertes</b>, saisis le prix et la date de sortie puis <b>Clôturer</b> : le résultat est calculé net de frais, en euros et en R (résultat ÷ risque réel), au cours EUR/USD mémorisé à l'entrée.</p>
+    <p><b>Fiche</b> (ou clic sur une ligne du journal) : toutes les informations du trade, le <b>commentaire</b> à compléter et les <b>captures</b> (entrée, gestion, sortie).</p>
+    <p><b>Journal et stats</b> : filtre par paire, résultat, respect des règles ou mot du commentaire ; les statistiques portent alors sur la sélection. Clique sur un titre de colonne pour trier.</p>
+    <p class="astuce">Supprimer demande deux clics ; juste après, « Annuler » dans la notification remet le trade. Retirer une capture se fait aussi avec « Annuler » possible.</p>`},
+  {t: "Réglages", h: `<p>Capital de départ, fréquence des opportunités (0,5 / 1 / 1,5 % par trade), risque total max, positions max par devise, seuils de corrélation, horaires, distance du stop proposé, cours EUR/USD (automatique ou manuel), fenêtre des annonces, commission, glissement et spread de chaque paire.</p>
     <p>Le risque par trade s'applique au <b>capital courant</b> : capital de départ + résultats des trades clôturés.</p>`},
-  {t: "7. Sauvegarde", h: `<p>Tes trades et réglages sont dans un fichier JSON sur cet ordinateur (chemin affiché dans <b>Réglages → Sauvegarde</b>), jamais en ligne.</p>
-    <p><b>Exporter</b> écrit une copie où tu veux. <b>Importer</b> remplace tout, après confirmation, et garde l'ancien fichier en secours (« .avant-import.json »).</p>`},
-  {t: "8. Thème et mises à jour", h: `<p>Le bouton <b>◐</b> passe de automatique (suit le système) à clair, puis sombre.</p>
+  {t: "Sauvegarde", h: `<p>Tes trades et réglages sont dans un fichier JSON sur cet ordinateur (chemin affiché dans <b>Réglages → Sauvegarde</b>), jamais en ligne. Les captures sont des images dans le dossier « captures » à côté.</p>
+    <p><b>Exporter</b> écrit une copie du fichier JSON où tu veux. <b>Importer</b> remplace tout, après confirmation, et garde l'ancien fichier en secours (« .avant-import.json »).</p>
+    <p class="astuce">L'export JSON ne contient pas les images : pour tout sauvegarder, copie aussi le dossier « captures ». Une capture retirée d'un trade reste dans ce dossier.</p>`},
+  {t: "Thème et mises à jour", h: `<p>Le bouton <b>🌓 Thème</b> passe de automatique (suit le système) à clair, puis sombre.</p>
     <p>Au démarrage, l'application vérifie s'il existe une nouvelle version. Si oui, le bouton jaune <b>⬆ Mise à jour</b> apparaît.</p>`},
+  {t: "Dictionnaire", h: () => `<table><thead><tr><th>Terme</th><th>Définition</th></tr></thead><tbody>${G.DICTIONNAIRE.map(d => `<tr><td><b>${esc(d.terme)}</b></td><td>${d.def}</td></tr>`).join("")}</tbody></table>`},
+  {t: "Glossaire des annonces", h: () => `<p>Noms tels qu'ils apparaissent dans le calendrier ForexFactory. Horaires indicatifs, en heure de Paris.</p>
+    <table><thead><tr><th>Annonce</th><th>Devise</th><th>Ce que c'est</th><th>Quand</th><th>Impact</th></tr></thead><tbody>${G.ANNONCES.map(a => `<tr><td><b>${esc(a.nom)}</b></td><td>${esc(a.devise)}</td><td>${esc(a.quoi)}</td><td>${esc(a.quand)}</td><td>${esc(a.impact)}</td></tr>`).join("")}</tbody></table>`},
 ];
 function ouvrirAide(i = 0){
   const nav = $("aideNav"); nav.innerHTML = "";
-  AIDE.forEach((s, k) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn ghost small" + (k === i ? " on" : ""); b.textContent = s.t; b.onclick = () => ouvrirAide(k); nav.appendChild(b); });
-  $("aideTexte").innerHTML = `<h3>${esc(AIDE[i].t)}</h3>${AIDE[i].h}`;
+  AIDE.forEach((s, k) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn ghost small" + (k === i ? " on" : ""); b.textContent = `${k + 1}. ${s.t}`; b.onclick = () => ouvrirAide(k); nav.appendChild(b); });
+  $("aideTexte").innerHTML = `<h3>${esc(AIDE[i].t)}</h3>${typeof AIDE[i].h === "function" ? AIDE[i].h() : AIDE[i].h}`;
+  $("aideTexte").scrollTop = 0;
   $("aideVersion").textContent = CFG.version ? `${CFG.nom} ${CFG.version}` : "";
   if (!$("dlgAide").open) $("dlgAide").showModal();
 }
@@ -637,8 +1044,9 @@ function fmtNum(v, d){ return isFinite(v) ? v.toLocaleString("fr-FR", {minimumFr
 function fmtEur(v){ return isFinite(v) ? v.toLocaleString("fr-FR", {style: "currency", currency: "EUR"}) : "—"; }
 function fmtPct(v, d=1){ return isFinite(v) ? fmtNum(v, d) + " %" : "—"; }
 function sgn(v){ return isFinite(v) ? (v > 0 ? "+" : "") + fmtNum(v, 2) : "—"; }
-function fmtPrice(pair, v){ return fmtNum(v, pair.includes("JPY") ? 3 : 5); }
-function fmtDate(s){ if (!s) return ""; const d = new Date(s); return isNaN(d) ? s : d.toLocaleString("fr-FR", {dateStyle: "short", timeStyle: "short"}); }
+function fmtPrice(pair, v){ return fmtNum(v, decimales(pair)); }
+function fmtDate(s){ if (!s) return ""; const d = new Date(s); return isNaN(d) ? String(s) : d.toLocaleString("fr-FR", {dateStyle: "short", timeStyle: "short"}); }
+function fmtJour(iso){ return iso ? `${iso.slice(8,10)}/${iso.slice(5,7)}/${iso.slice(0,4)}` : ""; }
 function nowLocal(){ const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
 let toastT = null;
 function toast(msg, action, fn){
@@ -652,26 +1060,87 @@ function hideBanner(){ $("storeBanner").hidden = true; }
 
 /* ───────── Démarrage ───────── */
 $("fPair").innerHTML = C.PAIRES.map(p => `<option>${p}</option>`).join("");
-$("checklist").innerHTML = CHECKS.map(([t, d], i) => `<label for="c${i}"><input type="checkbox" id="c${i}"><span><b>${i+1}. ${t}</b> : ${d}</span></label>`).join("");
+$("jPair").innerHTML = `<option value="">Toutes</option>` + C.PAIRES.map(p => `<option>${p}</option>`).join("");
+$("checklist").innerHTML = CHECKS.map(([t, d], i) => `<div class="chk">
+  <button type="button" class="vignette" data-exemple="${i}" title="Exemple et mes captures : ${esc(t)}" aria-label="Voir l'exemple : ${esc(t)}">${EX[i].svg}</button>
+  <label for="c${i}"><input type="checkbox" id="c${i}"><span><b>${i+1}. ${t}</b> : ${d}</span></label>
+  <span class="nbcap" id="nb${i}"></span></div>`).join("");
 $("fDate").value = nowLocal();
-function setDir(d){ dir = d; $("bLong").className = d === "long" ? "on-long" : ""; $("bShort").className = d === "short" ? "on-short" : ""; evaluate(); }
+$("cDate").value = aujourdhui();
 $("bLong").onclick = () => setDir("long"); $("bShort").onclick = () => setDir("short");
+$("fEntry").addEventListener("input", surEntree);
+$("fStop").addEventListener("input", surStopTape);
+$("fStop").addEventListener("keydown", e => { if (e.key === "ArrowUp" || e.key === "ArrowDown"){ e.preventDefault(); bougerStop(e.key === "ArrowUp" ? 1 : -1, e.shiftKey ? 10 : 1); } });
+$("bStopUp").onclick = e => bougerStop(1, e.shiftKey ? 10 : 1);
+$("bStopDn").onclick = e => bougerStop(-1, e.shiftKey ? 10 : 1);
+$("fPair").addEventListener("change", () => { if (!stopEtat.manuel) surEntree(); });
 document.querySelector("#view-new").addEventListener("input", evaluate);
 document.querySelector("#view-new").addEventListener("change", evaluate);
 $("bSave").onclick = () => saveTrade(false);
 $("bForce").onclick = () => saveTrade(true);
 $("bSaveSettings").onclick = saveSettings;
 $("bExport").onclick = exporter;
-$("bNewsMaj").onclick = async () => { await chargerAnnonces(true); toast(annonces.erreur || "Calendrier à jour"); };
 $("bImport").onclick = importer;
 $("btnAide").onclick = () => ouvrirAide(0);
-document.addEventListener("click", e => {
-  const c = e.target.closest("[data-close]"); if (c) closeTrade(c.dataset.close);
-  const d = e.target.closest("[data-del]"); if (d) deleteTrade(d.dataset.del, d);
+$("bNewsMaj").onclick = async () => { await chargerAnnonces(true); toast(annonces.erreur || "Calendrier à jour"); };
+$("defDico").onclick = () => { $("dlgDef").close(); ouvrirAide(AIDE.findIndex(a => a.t === "Dictionnaire")); };
+$("cDate").addEventListener("change", renderCorrelation);
+$("cAujourdhui").onclick = () => { $("cDate").value = aujourdhui(); renderCorrelation(); };
+$("cDuTrade").onclick = () => { $("cDate").value = jourDe($("fDate").value); renderCorrelation(); };
+$("exAjouter").onclick = () => choisirImages("ex:" + exempleCourant);
+$("ficheAjouter").onclick = () => choisirImages("trade:" + ficheCourante);
+$("ficheEnregistrer").onclick = sauverCommentaire;
+// Commentaire de la fiche : enregistré tout seul (pause de frappe, sortie du champ, fermeture)
+let tCommentaire = null;
+async function sauverCommentaire(){
+  clearTimeout(tCommentaire);
+  const t = trades.find(x => x.id === ficheCourante), texte = $("ficheComment").value.trim();
+  if (t && texte !== (t.comment || "")) { try { await store.putTrade({...t, comment: texte}); toast("Commentaire enregistré"); } catch {} }
+}
+$("ficheComment").addEventListener("input", () => { clearTimeout(tCommentaire); tCommentaire = setTimeout(sauverCommentaire, TEMPO.saisie); });
+$("ficheComment").addEventListener("change", sauverCommentaire);
+$("dlgTrade").addEventListener("close", sauverCommentaire);
+$("dlgExemple").addEventListener("close", () => { exempleCourant = null; });
+$("dlgImage").onclick = () => $("dlgImage").close();
+// Journal : filtres et tri
+["jPair","jRes","jRegles"].forEach(id => $(id).addEventListener("change", () => { journal.pair = $("jPair").value; journal.res = $("jRes").value; journal.regles = $("jRegles").value; renderJournal(); }));
+$("jQ").addEventListener("input", () => { journal.q = $("jQ").value; renderJournal(); });
+$("jReset").onclick = () => { Object.assign(journal, {pair: "", res: "", regles: "", q: ""}); $("jPair").value = ""; $("jRes").value = ""; $("jRegles").value = ""; $("jQ").value = ""; renderJournal(); };
+document.querySelectorAll("#view-journal th[data-tri]").forEach(th => th.onclick = () => {
+  if (journal.tri === th.dataset.tri) journal.asc = !journal.asc; else { journal.tri = th.dataset.tri; journal.asc = th.dataset.tri === "pair"; }
+  renderJournal();
 });
+// Captures : bouton « Ajouter », collage, glisser-déposer
+function choisirImages(groupe){ const i = $("fichierImage"); i.dataset.groupe = groupe; i.value = ""; i.click(); }
+$("fichierImage").addEventListener("change", e => { if (e.target.files.length) ajouterCaptures(e.target.dataset.groupe, [...e.target.files]); });
+document.addEventListener("paste", e => {
+  const fichiers = [...(e.clipboardData && e.clipboardData.files || [])].filter(f => f.type.startsWith("image/"));
+  const groupe = groupeActif();
+  if (!fichiers.length || !groupe) return;
+  e.preventDefault(); ajouterCaptures(groupe, fichiers);
+});
+document.addEventListener("dragover", e => { const z = e.target.closest && e.target.closest("[data-depot]"); if (z){ e.preventDefault(); z.classList.add("survol"); } });
+document.addEventListener("dragleave", e => { const z = e.target.closest && e.target.closest("[data-depot]"); if (z) z.classList.remove("survol"); });
+document.addEventListener("drop", e => {
+  const z = e.target.closest && e.target.closest("[data-depot]"); if (!z) return;
+  e.preventDefault(); z.classList.remove("survol");
+  const fichiers = [...e.dataTransfer.files].filter(f => f.type.startsWith("image/"));
+  if (fichiers.length) ajouterCaptures(z.dataset.depot, fichiers);
+});
+// Clics délégués
+document.addEventListener("click", e => {
+  const d = e.target.closest("[data-def]"); if (d){ e.preventDefault(); e.stopPropagation(); ouvrirDef(d.dataset.def); return; }
+  const ex = e.target.closest("[data-exemple]"); if (ex){ ouvrirExemple(Number(ex.dataset.exemple)); return; }
+  const aj = e.target.closest("[data-ajouter]"); if (aj){ choisirImages(aj.dataset.ajouter); return; }
+  const v = e.target.closest("[data-voir]"); if (v){ $("imgGrande").src = "captures/" + v.dataset.voir; $("dlgImage").showModal(); return; }
+  const rt = e.target.closest("[data-retirer]"); if (rt){ retirerCapture(rt.dataset.retirer, rt.dataset.nom); return; }
+  const c = e.target.closest("[data-close]"); if (c){ closeTrade(c.dataset.close); return; }
+  const del = e.target.closest("[data-del]"); if (del){ deleteTrade(del.dataset.del, del); return; }
+  const f = e.target.closest("[data-fiche]"); if (f) ouvrirFiche(f.dataset.fiche);
+}, true);
 document.querySelectorAll("nav[role=tablist] button").forEach(b => b.onclick = () => {
   document.querySelectorAll("nav[role=tablist] button").forEach(x => x.setAttribute("aria-selected", x === b ? "true" : "false"));
-  ["new","open","journal","settings"].forEach(v => $("view-" + v).hidden = v !== b.dataset.tab);
+  ["new","open","journal","corr","settings"].forEach(v => $("view-" + v).hidden = v !== b.dataset.tab);
 });
 setDir("long");
 (async () => {
@@ -681,9 +1150,10 @@ setDir("long");
     window.appli.surDonneesChangees(async () => { await charger(); toast("Données mises à jour depuis le fichier."); });
   }
   await charger();
-  chargerAnnonces();
+  chargerAnnonces(); chargerCours();
   setInterval(() => chargerAnnonces(), TEMPO.annonces);                     // le cache limite à 1 requête/heure
-  setInterval(evaluate, TEMPO.compteARebours);                              // compte à rebours
+  setInterval(() => chargerCours(), TEMPO.cours);
+  setInterval(evaluate, TEMPO.compteARebours);                              // compte à rebours des annonces
   setTimeout(verifierMaj, TEMPO.verifMaj);
 })();
 </script>

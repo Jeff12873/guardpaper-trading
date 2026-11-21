@@ -95,3 +95,62 @@ test('Prochaines annonces fortes, dans l\'ordre', () => {
   const p = C.prochainesAnnonces(SEMAINE, Date.parse('2026-11-16T00:00:00Z'));
   assert.deepEqual(p.map(e => e.country), ['USD', 'EUR']);
 });
+
+/* ───────── Corrélation (R6) ───────── */
+// Série fictive : USD bouge, les autres devises suivent l'USD à des degrés divers
+function serie(jours) {
+  const taux = {}; let usd = 1.10, gbp = 0.85, jpy = 160, chf = 0.95, aud = 1.65, cad = 1.50, nzd = 1.80;
+  for (let i = 0; i < jours; i++) {
+    const d = new Date(Date.UTC(2026, 0, 1) + i * 86400000).toISOString().slice(0, 10);
+    const choc = Math.sin(i * 1.7) * 0.004, bruit = Math.cos(i * 2.3) * 0.002;
+    usd *= 1 + choc; gbp *= 1 + choc * 0.9 + bruit * 0.3; jpy *= 1 + choc * 0.2 + bruit;
+    chf *= 1 + choc * 0.95; aud *= 1 + bruit; cad *= 1 + choc * 0.5; nzd *= 1 + bruit * 0.9 + choc * 0.1;
+    taux[d] = { USD: usd, GBP: gbp, JPY: jpy, CHF: chf, AUD: aud, CAD: cad, NZD: nzd };
+  }
+  return taux;
+}
+
+test('Prix des paires depuis les taux contre EUR', () => {
+  const t = { USD: 1.1, GBP: 0.85, JPY: 165, CHF: 0.95, AUD: 1.65, CAD: 1.5, NZD: 1.8 };
+  proche(C.prixPaire('EUR/USD', t), 1.1, 1e-12, 'EUR/USD');
+  proche(C.prixPaire('GBP/USD', t), 1.1 / 0.85, 1e-12, 'GBP/USD');
+  proche(C.prixPaire('USD/JPY', t), 150, 1e-9, 'USD/JPY');
+});
+
+test('Pearson : +1, −1, et la matrice est symétrique avec 1 sur la diagonale', () => {
+  proche(C.pearson([1, 2, 3, 4], [2, 4, 6, 8]), 1, 1e-12, '+1');
+  proche(C.pearson([1, 2, 3, 4], [8, 6, 4, 2]), -1, 1e-12, '−1');
+  const mat = C.matriceCorrelation(serie(120), '2026-04-01', 60);
+  assert.equal(mat.n, 60);
+  assert.ok(mat.fin < '2026-04-01', 'aucune donnée du jour du trade ni du futur');
+  assert.equal(mat.m['EUR/USD']['EUR/USD'], 1);
+  proche(mat.m['EUR/USD']['USD/CHF'], mat.m['USD/CHF']['EUR/USD'], 1e-12, 'symétrie');
+  assert.ok(mat.m['EUR/USD']['USD/CHF'] < -0.8, 'EUR/USD et USD/CHF opposés');
+  assert.equal(C.matriceCorrelation(serie(10), '2026-04-01', 60), null);
+});
+
+test('R6 : même pari bloquant, sens opposé = neutralisation, seuil d\'alerte', () => {
+  const r = { ...C.DEFAUTS };
+  const matrice = { m: { 'EUR/USD': { 'USD/CHF': -0.9, 'GBP/USD': 0.7, 'USD/JPY': 0.1 } } };
+  const v = (dir, ouvertes) => C.verifierCorrelation({ matrice, paire: 'EUR/USD', dir, ouvertes, reglages: r });
+  // Achat EUR/USD + vente USD/CHF ouverte : −0,9 × 1 × −1 = +0,9 → même pari
+  const a = v('long', [{ pair: 'USD/CHF', dir: 'short' }]);
+  assert.equal(a.meme.length, 1); assert.equal(a.bloque, true);
+  // Achat EUR/USD + achat USD/CHF : −0,9 → se neutralisent, pas bloquant
+  const b = v('long', [{ pair: 'USD/CHF', dir: 'long' }]);
+  assert.equal(b.neutres.length, 1); assert.equal(b.bloque, false);
+  // GBP/USD dans le même sens : 0,7 → alerte seulement
+  const c = v('long', [{ pair: 'GBP/USD', dir: 'long' }]);
+  assert.equal(c.alertes.length, 1); assert.equal(c.bloque, false);
+  assert.equal(C.verifierCorrelation({ matrice: null }).dispo, false);
+});
+
+test('EUR/USD au dernier fixing connu et données importées avec captures', () => {
+  const taux = { '2026-01-02': { USD: 1.1 }, '2026-01-05': { USD: 1.12 } };
+  assert.deepEqual(C.eurusdAu(taux, '2026-01-04'), { cours: 1.1, date: '2026-01-02' });
+  assert.equal(C.eurusdAu(taux, '2025-12-31'), null);
+  const d = C.validerDonnees({ trades: [{ id: 't1', pair: 'EUR/USD', dir: 'long', entry: 1, stop: 0.9, lots: 0.1, status: 'open', captures: ['abc123def.png', '../../etc/passwd'] }], exemples: { 3: ['abc123def.png'], x: ['zz'] } });
+  assert.deepEqual(d.trades[0].captures, ['abc123def.png']);
+  assert.equal(d.trades[0].comment, '');
+  assert.deepEqual(d.exemples, { 3: ['abc123def.png'] });
+});

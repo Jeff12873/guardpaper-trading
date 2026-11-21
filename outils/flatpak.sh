@@ -56,11 +56,12 @@ done
 echo "3/5  Permissions"
 # Ne demander que le nécessaire, et dire pourquoi :
 #  réseau : vérification des mises à jour (et services en ligne éventuels) ;
-#  ~/.local/share/<nom> : le fichier de données ; Téléchargements : export et import.
+#  ~/.local/share/<nom> : le fichier de données et les captures ; Téléchargements : export et import ;
+#  Images (lecture seule) : choisir une capture d'écran à joindre.
 flatpak build-finish "$CONSTRUCTION" \
   --command="$BINAIRE" \
   --socket=wayland --socket=fallback-x11 --share=ipc --share=network --device=dri \
-  --filesystem=xdg-data/guardpaper-trading:create --filesystem=xdg-download \
+  --filesystem=xdg-data/guardpaper-trading:create --filesystem=xdg-download --filesystem=xdg-pictures:ro \
   --env=ELECTRON_OZONE_PLATFORM_HINT=auto > /dev/null
 
 echo "4/5  Dépôt local et fichier $BINAIRE.flatpak"

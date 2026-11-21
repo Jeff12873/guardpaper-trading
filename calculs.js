@@ -11,6 +11,9 @@
   const DEFAUTS = {
     capital: 10000, freq: 'mid', maxTotal: 3, maxCcy: 2, start: 7, end: 22, eurusd: 1.09, comm: 6, slip: 0.5,
     newsBefore: 30, newsAfter: 120,             // fenêtre des annonces autour de l'entrée, en minutes
+    corrN: 60, corrFort: 0.8, corrAlerte: 0.6, maxCorrelees: 1,   // corrélation (R6)
+    eurusdAuto: true,                           // cours EUR/USD de conversion pris dans les fixings BCE
+    stopDefaut: 20,                             // distance du stop proposée à la saisie de l'entrée (pips)
     spreads: { 'EUR/USD': 0.6, 'GBP/USD': 0.9, 'USD/JPY': 0.8, 'USD/CHF': 1.0, 'AUD/USD': 0.8, 'USD/CAD': 1.0, 'NZD/USD': 1.2 },
   };
 
@@ -44,7 +47,7 @@
   function resultatCloture(t, sortie, r) {
     const sens = t.dir === 'long' ? 1 : -1;
     const pips = (sortie - t.entry) / taillePip(t.pair) * sens;
-    const vp = valeurPipEUR(t.pair, t.entry, r.eurusd);
+    const vp = valeurPipEUR(t.pair, t.entry, t.eurusd || r.eurusd);   // cours mémorisé à l'entrée
     const spread = r.spreads[t.pair] ?? 1;
     const pnl = pips * vp * t.lots - spread * vp * t.lots - r.comm * t.lots;
     return { pnl, r: t.riskEUR > 0 ? pnl / t.riskEUR : 0 };
@@ -68,6 +71,8 @@
       discipline: tous.length ? tous.filter(t => t.compliant).length / tous.length * 100 : NaN,
     };
   }
+
+  const NOM_CAPTURE = /^[a-z0-9-]{6,40}\.(png|jpg|webp)$/;
 
   /* ───────── Annonces économiques (règle R9) ───────── */
   const JOUR = 86400000;
@@ -106,6 +111,56 @@
     .filter(e => estFort(e) && Date.parse(e.date) >= maintenant)
     .sort((x, y) => Date.parse(x.date) - Date.parse(y.date));
 
+  /* ───────── Corrélation (règle R6) ───────── */
+  // Prix d'une paire à partir des taux contre EUR (fixings BCE : unités de devise pour 1 EUR)
+  function prixPaire(paire, taux) {
+    const [b, q] = devises(paire);
+    const t = (c) => (c === 'EUR' ? 1 : taux[c]);
+    return t(q) / t(b);
+  }
+  function pearson(a, b) {
+    const n = a.length; if (n < 2 || b.length !== n) return NaN;
+    const ma = a.reduce((x, y) => x + y, 0) / n, mb = b.reduce((x, y) => x + y, 0) / n;
+    let num = 0, da = 0, db = 0;
+    for (let i = 0; i < n; i++) { const x = a[i] - ma, y = b[i] - mb; num += x * y; da += x * x; db += y * y; }
+    return da > 0 && db > 0 ? num / Math.sqrt(da * db) : NaN;
+  }
+  // Matrice de Pearson sur les rendements journaliers ln(close_t / close_t-1), sur les n derniers
+  // rendements STRICTEMENT avant le jour donné (« AAAA-MM-JJ ») : en Replay, rien du futur.
+  function matriceCorrelation(taux, avantJour, n) {
+    const dates = Object.keys(taux || {}).filter(d => d < avantJour).sort().slice(-(n + 1));
+    if (dates.length < Math.min(n + 1, 21)) return null;
+    const rend = {};
+    PAIRES.forEach(p => {
+      const px = dates.map(d => prixPaire(p, taux[d]));
+      rend[p] = px.slice(1).map((v, i) => Math.log(v / px[i]));
+    });
+    const m = {};
+    PAIRES.forEach(a => { m[a] = {}; PAIRES.forEach(b => { m[a][b] = a === b ? 1 : pearson(rend[a], rend[b]); }); });
+    return { m, debut: dates[0], fin: dates[dates.length - 1], n: dates.length - 1 };
+  }
+  // Cours EUR/USD du dernier fixing au plus tard au jour donné
+  function eurusdAu(taux, jour) {
+    const d = Object.keys(taux || {}).filter(x => x <= jour).sort().pop();
+    return d ? { cours: taux[d].USD, date: d } : null;
+  }
+  // c_eff = corr × sens_A × sens_B (sens = +1 achat, −1 vente) pour chaque position ouverte
+  function verifierCorrelation({ matrice, paire, dir, ouvertes, reglages: r }) {
+    if (!matrice) return { dispo: false };
+    const sens = (d) => (d === 'long' ? 1 : -1);
+    const liens = ouvertes.filter(t => t.pair !== paire).map(t => ({
+      pair: t.pair, dir: t.dir, c: matrice.m[paire][t.pair] * sens(dir) * sens(t.dir),
+    })).filter(l => isFinite(l.c));
+    const meme = liens.filter(l => l.c >= r.corrFort);
+    return {
+      dispo: true,
+      meme,                                                        // même pari
+      alertes: liens.filter(l => l.c >= r.corrAlerte && l.c < r.corrFort),
+      neutres: liens.filter(l => l.c <= -r.corrFort),              // se neutralisent
+      bloque: meme.length >= r.maxCorrelees,                       // nouveau trade = un pari de trop
+    };
+  }
+
   // Vérifie et complète des données importées (fichier JSON) ; lève une erreur lisible si invalide
   function validerDonnees(d) {
     if (!d || typeof d !== 'object') throw new Error("Ce fichier n'est pas une sauvegarde valide.");
@@ -117,8 +172,13 @@
         throw new Error(`Trade n° ${i + 1} invalide.`);
     });
     const s = d.settings || {};
-    return { settings: { ...DEFAUTS, ...s, spreads: { ...DEFAUTS.spreads, ...(s.spreads || {}) } }, trades };
+    // Captures : noms de fichiers générés par l'appli uniquement (jamais de chemin)
+    const captures = (l) => (Array.isArray(l) ? l.filter(x => typeof x === 'string' && NOM_CAPTURE.test(x)) : []);
+    const propres = trades.map(t => ({ ...t, captures: captures(t.captures), comment: typeof t.comment === 'string' ? t.comment : '' }));
+    const exemples = {};
+    Object.entries(d.exemples && typeof d.exemples === 'object' ? d.exemples : {}).forEach(([k, v]) => { if (/^\d$/.test(k)) exemples[k] = captures(v); });
+    return { settings: { ...DEFAUTS, ...s, spreads: { ...DEFAUTS.spreads, ...(s.spreads || {}) } }, trades: propres, exemples };
   }
 
-  return { PAIRES, RISQUE_PAR_FREQ, DEFAUTS, nombre, taillePip, devises, cotationVersEUR, valeurPipEUR, taillePosition, resultatCloture, statistiques, validerDonnees, couvertureSemaine, verifierAnnonces, prochainesAnnonces };
+  return { PAIRES, RISQUE_PAR_FREQ, DEFAUTS, nombre, taillePip, devises, cotationVersEUR, valeurPipEUR, taillePosition, resultatCloture, statistiques, validerDonnees, couvertureSemaine, verifierAnnonces, prochainesAnnonces, prixPaire, pearson, matriceCorrelation, eurusdAu, verifierCorrelation, NOM_CAPTURE };
 });

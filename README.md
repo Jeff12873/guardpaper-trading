@@ -11,13 +11,14 @@ Application de bureau Linux (Electron, publiée en Flatpak via FlatKein).
 L'outil **contrôle**, il ne **décide** pas : aucun ordre passé chez le broker, aucun signal d'entrée.
 
 Ce dépôt est une **coquille vide** : aucune donnée personnelle, aucun secret. Les trades et réglages vivent
-dans `~/.local/share/guardpaper-trading/donnees.json`, sur l'ordinateur de l'utilisateur.
+dans `~/.local/share/guardpaper-trading/donnees.json` (captures dans `captures/` à côté), sur l'ordinateur de l'utilisateur.
 
 ## Feuille de route
 
 1. ✅ Stockage dans un fichier local, export / import JSON.
 2. ✅ Annonces économiques automatiques (flux ForexFactory, cache 1 h), avec repli manuel.
-3. Corrélation entre paires (Pearson sur rendements journaliers, taux BCE), matrice puis règle bloquante.
+3. ✅ Corrélation entre paires (Pearson sur rendements journaliers, fixings BCE via Frankfurter), matrice et règle bloquante ;
+   cours EUR/USD automatique ; captures et commentaires ; exemples de la checklist ; dictionnaire.
 4. Champs `mode` (replay / démo / réel) et `rulesSnapshot`, filtres des statistiques.
 
 ## Structure
@@ -25,11 +26,14 @@ dans `~/.local/share/guardpaper-trading/donnees.json`, sur l'ordinateur de l'uti
 | Fichier | Rôle |
 |---|---|
 | `index.html` | Interface : saisie, verdict des règles, positions, journal, réglages, aide intégrée |
-| `calculs.js` | Calculs purs (pip, taille de position, résultat, statistiques, validation des données) |
+| `calculs.js` | Calculs purs (pip, taille de position, résultat, statistiques, annonces, corrélation, validation) |
+| `exemples.js` | Schémas d'exemple des 10 points de la checklist |
+| `glossaire.js` | Dictionnaire (boutons ⓘ) et glossaire des annonces économiques |
 | `tests/` | Tests des calculs (`npm test`), dont les valeurs de contrôle du cahier des charges |
 | `bureau/main.js` | Processus principal : fenêtre, fichier de données, export / import, mises à jour |
 | `bureau/preload.js` | Pont : la liste fermée des actions que l'interface peut demander (`window.appli`) |
 | `bureau/annonces.js` | Calendrier ForexFactory : cache 1 h (mémoire + disque), mode simulé `GUARDPAPER_ANNONCES=<fichier>` |
+| `bureau/cours.js` | Fixings BCE (Frankfurter) : historique depuis 2010, cache 1 h, mode simulé `GUARDPAPER_COURS=<fichier>` |
 | `bureau/coffre.js` | Écriture atomique des fichiers |
 | `bureau/flatpak/` | Lanceur, fiche `.desktop`, fiche AppStream `metainfo.xml`, icônes |
 | `outils/flatpak.sh` | Fabrique (et installe) le Flatpak |
