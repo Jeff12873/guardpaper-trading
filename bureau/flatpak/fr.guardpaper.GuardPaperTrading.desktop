@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=GuardPaper Trading
+Comment=Garde-fou de discipline pour le trading forex (MTF 2.0)
+Exec=guardpaper-trading %U
+Icon=fr.guardpaper.GuardPaperTrading
+Categories=Office;Finance;
+Keywords=forex;trading;journal;risque;
+StartupWMClass=guardpaper-trading
+Terminal=false

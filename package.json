@@ -1,31 +1,45 @@
 {
-  "name": "monappli",
-  "productName": "MonAppli",
+  "name": "guardpaper-trading",
+  "productName": "GuardPaper Trading",
   "version": "1.0.0",
-  "description": "Description courte de l'application.",
+  "description": "Garde-fou de discipline pour le swing trading forex (méthode MTF 2.0) : règles bloquantes, taille de position, journal et statistiques.",
   "main": "bureau/main.js",
   "private": true,
   "flatpak": {
-    "id": "fr.monappli.MonAppli",
-    "depot": "Jeff12873/monappli"
+    "id": "fr.guardpaper.GuardPaperTrading",
+    "depot": "Jeff12873/guardpaper-trading"
   },
   "scripts": {
     "demarrer": "electron .",
     "flatpak": "sh outils/flatpak.sh",
-    "appimage": "electron-builder --linux AppImage"
+    "appimage": "electron-builder --linux AppImage",
+    "test": "node --test tests/*.test.js"
   },
   "devDependencies": {
     "electron": "44.7.0",
     "electron-builder": "26.15.3"
   },
   "build": {
-    "appId": "fr.monappli.MonAppli",
-    "productName": "MonAppli",
-    "artifactName": "MonAppli-${version}.AppImage",
-    "files": ["index.html", "icone.svg", "bureau/**", "package.json"],
-    "directories": { "output": "dist" },
-    "linux": { "target": "AppImage", "category": "Utility", "icon": "bureau/icone.png", "syncDesktopName": true }
+    "appId": "fr.guardpaper.GuardPaperTrading",
+    "productName": "GuardPaper Trading",
+    "artifactName": "guardpaper-trading-${version}.AppImage",
+    "files": [
+      "index.html",
+      "calculs.js",
+      "icone.svg",
+      "bureau/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Office",
+      "icon": "bureau/icone.png",
+      "syncDesktopName": true
+    }
   },
   "author": "Jeff12873",
-  "desktopName": "monappli.desktop"
+  "desktopName": "guardpaper-trading.desktop"
 }

@@ -1,195 +1,607 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MonAppli</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:">
+
+<title>GuardPaper Trading</title>
 <link rel="icon" href="icone.svg">
 <style>
-/* ---------- Thème : toutes les couleurs sont des variables, définies une seule fois ---------- */
-:root{--paper:#FAFAF7;--card:#FFFFFF;--ink:#1F2430;--muted:#6B7280;--line:#E4E2DC;--accent:#7C6CF0;--ok:#16A34A;--warn:#D97706;--bad:#DC2626;color-scheme:light}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#16151D;--card:#201F2A;--ink:#ECEAF4;--muted:#9C99AD;--line:#33313F;--accent:#A99CFF;color-scheme:dark}}
-:root[data-theme="dark"]{--paper:#16151D;--card:#201F2A;--ink:#ECEAF4;--muted:#9C99AD;--line:#33313F;--accent:#A99CFF;color-scheme:dark}
+/* Poste de contrôle avant trade : onglets en haut, verdict des règles toujours visible à côté du formulaire. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --ink:#16202c; --muted:#5b6878; --line:#d9e0e8; --accent:#1f5fbf;
+  --ok:#1e7d4f; --ok-bg:#e3f4ea; --bad:#b4282d; --bad-bg:#fbe6e6; --warn:#9a6200; --warn-bg:#fdf1d8;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular","DejaVu Sans Mono",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f141b; --surface:#18202a; --ink:#e6ebf1; --muted:#9aa7b6; --line:#2a3542; --accent:#6ea2f0;
+    --ok:#5cc38e; --ok-bg:#16301f; --bad:#f07a7e; --bad-bg:#3a1a1c; --warn:#e4b04f; --warn-bg:#3a2c10;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --surface:#18202a; --ink:#e6ebf1; --muted:#9aa7b6; --line:#2a3542; --accent:#6ea2f0;
+  --ok:#5cc38e; --ok-bg:#16301f; --bad:#f07a7e; --bad-bg:#3a1a1c; --warn:#e4b04f; --warn-bg:#3a2c10;
+  color-scheme:dark;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.45 system-ui,sans-serif}
-header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-header h1{margin:0;font-size:20px}
-header .version{font-size:12px;color:var(--muted)}
-header .outils{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-main{padding:20px;max-width:960px;margin:0 auto}
-.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
-.btn:hover{border-color:var(--accent)}
-.btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.maj{background:#FDE68A;color:#1F2430;border-color:#F59E0B;font-weight:700}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding:16px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+h1{font-size:22px;margin:0;text-wrap:balance}
+h1 .version{font-size:12px;font-weight:400;color:var(--muted);margin-left:6px}
+h2{font-size:16px;margin:0 0 8px;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.outils{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+nav[role=tablist]{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+nav[role=tablist] button{background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);font:600 14px var(--f-body);padding:8px 12px;cursor:pointer}
+nav[role=tablist] button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav .count{font-family:var(--f-num);font-size:12px;background:var(--line);border-radius:10px;padding:0 6px;margin-left:4px}
+section[hidden]{display:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+label.f{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+input,select,textarea{font:15px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
+input.num{font-family:var(--f-num)}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;background:var(--bg);border:0;padding:8px;font:600 14px var(--f-body);color:var(--muted);cursor:pointer}
+.seg button.on-long{background:var(--ok-bg);color:var(--ok)}
+.seg button.on-short{background:var(--bad-bg);color:var(--bad)}
+.checklist{display:grid;gap:6px;margin-top:4px}
+.checklist label{display:flex;gap:8px;align-items:flex-start;font-size:14px;padding:6px 8px;border-radius:6px;cursor:pointer}
+.checklist label:hover{background:var(--bg)}
+.checklist input{margin-top:3px}
+.checklist b{white-space:nowrap}
+.news{display:flex;gap:8px;align-items:flex-start;padding:10px;border-radius:6px;background:var(--warn-bg);font-size:14px}
+.news a{color:var(--accent)}
+.verdict{display:grid;gap:12px;position:sticky;top:12px}
+.calc{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px}
+.calc dt{color:var(--muted)} .calc dd{margin:0;text-align:right}
+.big{font-size:26px;font-weight:600}
+.rules{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.rules li{display:flex;gap:8px;padding:6px 8px;border-radius:6px;font-size:14px;align-items:flex-start}
+.rules li.ok{background:var(--ok-bg)} .rules li.bad{background:var(--bad-bg)}
+.rules .ic{font-weight:700;width:14px;flex:none}
+.rules li.ok .ic{color:var(--ok)} .rules li.bad .ic{color:var(--bad)}
+.btn{font:600 15px var(--f-body);border-radius:6px;padding:10px 14px;cursor:pointer;border:1px solid transparent}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.primary:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
+.btn.ghost{background:none;border-color:var(--line);color:var(--ink)}
+.btn.danger{background:none;border-color:var(--bad);color:var(--bad)}
+.btn.danger:disabled{opacity:.5;cursor:not-allowed}
+.btn.small{padding:4px 8px;font-size:13px}
+.btn.maj{background:#FDE68A;color:#1F2430;border-color:#F59E0B}
 .hidden{display:none !important}
-.carte{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
-.vide{color:var(--muted);text-align:center;padding:40px 0}
-.note{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
-.note:last-child{border-bottom:none}
-.note small{color:var(--muted)}
-dialog{border:none;border-radius:14px;padding:0;background:var(--card);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.3);width:min(560px,calc(100vw - 32px))}
+.override{display:grid;gap:8px;border-top:1px dashed var(--line);padding-top:12px}
+.override p{margin:0;font-size:13px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px}
+.tile .k{font-size:12px;color:var(--muted)} .tile .v{font-family:var(--f-num);font-size:22px;font-weight:600}
+.pos{color:var(--ok)} .neg{color:var(--bad)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600}
+td.r{text-align:right}
+.pill{display:inline-block;font-size:12px;font-weight:600;border-radius:10px;padding:1px 8px}
+.pill.long{background:var(--ok-bg);color:var(--ok)} .pill.short{background:var(--bad-bg);color:var(--bad)}
+.pill.okp{background:var(--ok-bg);color:var(--ok)} .pill.badp{background:var(--bad-bg);color:var(--bad)}
+.openrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end}
+.banner{padding:10px 12px;border-radius:6px;font-size:14px;background:var(--warn-bg);color:var(--ink)}
+.empty{color:var(--muted);font-size:14px;padding:12px 0}
+.toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;font-size:14px;z-index:100;max-width:calc(100vw - 32px)}
+.toast button{border:1px solid currentColor;background:none;color:inherit;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit}
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-size:14px}
+.ligne{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+dialog{border:none;border-radius:12px;padding:0;background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.3);width:min(720px,calc(100vw - 32px))}
 dialog::backdrop{background:rgba(0,0,0,.35)}
 dialog form{padding:20px}
 dialog h3{margin:0 0 12px}
-dialog label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
-dialog input[type=text]{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--paper);color:inherit;font:inherit}
-.ligne{display:flex;gap:8px;align-items:center}
-.ligne input{flex:1}
 .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:16px}
-.aide{display:grid;grid-template-columns:180px 1fr;gap:16px;max-height:70vh}
+.aide{display:grid;grid-template-columns:190px 1fr;gap:16px;max-height:70vh}
 .aide nav{display:flex;flex-direction:column;gap:4px;overflow:auto}
 .aide nav button{text-align:left}
-.aide article{overflow:auto;padding-right:6px}
-.aide .astuce{background:color-mix(in srgb, var(--accent) 12%, transparent);border-radius:8px;padding:8px 10px}
-.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:var(--ink);color:var(--paper);border-radius:10px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:100;max-width:calc(100vw - 32px)}
-.toast button{border:1px solid currentColor;background:none;color:inherit;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit}
-.focus{animation:clignote .8s ease-in-out 3}
-@keyframes clignote{50%{box-shadow:0 0 0 3px var(--accent)}}
+.aide nav button.on{border-color:var(--accent);color:var(--accent)}
+.aide article{overflow:auto;padding-right:6px;font-size:14px}
+.aide .astuce{background:var(--warn-bg);border-radius:6px;padding:8px 10px}
 @media (max-width:640px){.aide{grid-template-columns:1fr}.aide nav{flex-direction:row;flex-wrap:wrap}}
 </style>
 </head>
 <body>
-<header>
-  <h1 id="titre">MonAppli</h1><span class="version" id="version"></span>
-  <div class="outils">
-    <button class="btn maj hidden" id="btnMaj" type="button">⬆ Mise à jour</button>
-    <button class="btn" id="btnTheme" type="button" title="Clair / sombre / automatique">◐</button>
-    <button class="btn" id="btnReglages" type="button">⚙️ Réglages</button>
-    <button class="btn" id="btnAide" type="button">❓ Aide</button>
-  </div>
-</header>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span id="titre">GuardPaper Trading</span><span class="version" id="version"></span></h1>
+      <div class="sub">Un trade n'est enregistré que s'il respecte toutes les règles.</div>
+    </div>
+    <div class="outils">
+      <span class="sub num" id="capLine">Capital : —</span>
+      <button class="btn small maj hidden" id="btnMaj" type="button">⬆ Mise à jour</button>
+      <button class="btn ghost small" id="btnTheme" type="button" title="Thème : automatique, clair, sombre">◐</button>
+      <button class="btn ghost small" id="btnAide" type="button">❓ Aide</button>
+    </div>
+  </header>
+  <div class="banner" id="storeBanner" hidden></div>
 
-<main>
-  <!-- EXEMPLE à remplacer par le métier de l'application : lister les notes d'un dossier du coffre -->
-  <div class="carte">
-    <div class="ligne"><b style="flex:1">Notes du dossier « <span id="nomDossier"></span> »</b><button class="btn" id="btnRecharger" type="button">↻ Recharger</button></div>
-    <div id="liste"><div class="vide">Choisis ton coffre Obsidian dans ⚙️ Réglages.</div></div>
-  </div>
-</main>
+  <nav role="tablist">
+    <button role="tab" id="tab-new" aria-selected="true" data-tab="new">Nouveau trade</button>
+    <button role="tab" id="tab-open" aria-selected="false" data-tab="open">Positions ouvertes<span class="count" id="openCount">0</span></button>
+    <button role="tab" id="tab-journal" aria-selected="false" data-tab="journal">Journal et stats</button>
+    <button role="tab" id="tab-settings" aria-selected="false" data-tab="settings">Réglages</button>
+  </nav>
 
-<dialog id="dlgReglages">
-  <form method="dialog" id="formReglages">
-    <h3>Réglages</h3>
-    <label>Coffre Obsidian</label>
-    <div class="ligne"><input type="text" id="rCoffre" readonly placeholder="Aucun coffre choisi"><button class="btn" type="button" id="rChoisir">Choisir…</button></div>
-    <label for="rDossier">Dossier de notes à afficher (dans le coffre)</label>
-    <input type="text" id="rDossier" autocomplete="off" placeholder="ex. 02.Area">
-    <div class="actions"><button class="btn" type="button" id="rFermer">Fermer</button><button class="btn on" type="submit">Enregistrer</button></div>
-  </form>
-</dialog>
+  <!-- NOUVEAU TRADE -->
+  <section id="view-new">
+    <div class="grid2">
+      <div class="card" style="display:grid;gap:16px">
+        <div class="fields">
+          <label class="f" for="fDate">Date et heure (en Replay : celle de la bougie)
+            <input type="datetime-local" id="fDate"></label>
+          <label class="f" for="fPair">Paire
+            <select id="fPair"></select></label>
+          <div class="f" style="display:grid;gap:4px;font-size:13px;color:var(--muted)">Sens
+            <div class="seg" role="group" aria-label="Sens">
+              <button type="button" id="bLong">Achat</button>
+              <button type="button" id="bShort">Vente</button>
+            </div>
+          </div>
+          <label class="f" for="fEntry">Prix d'entrée
+            <input class="num" id="fEntry" inputmode="decimal" placeholder="1,09650"></label>
+          <label class="f" for="fStop">Stop
+            <input class="num" id="fStop" inputmode="decimal" placeholder="1,09420"></label>
+        </div>
+
+        <div class="news">
+          <input type="checkbox" id="fNews">
+          <label for="fNews">Une annonce 3 étoiles (taux, emploi US, inflation) tombe dans les 2 h sur une des deux devises.
+            <a href="https://fr.investing.com/economic-calendar/" target="_blank" rel="noopener">Ouvrir le calendrier Investing</a></label>
+        </div>
+
+        <div>
+          <h2>Checklist MTF 2.0</h2>
+          <div class="checklist" id="checklist"></div>
+        </div>
+      </div>
+
+      <div class="verdict">
+        <div class="card">
+          <h2>Taille de position</h2>
+          <dl class="calc">
+            <dt>Lots à prendre</dt><dd class="num big" id="oLots">—</dd>
+            <dt>Unités</dt><dd class="num" id="oUnits">—</dd>
+            <dt>Distance du stop</dt><dd class="num" id="oPips">—</dd>
+            <dt>Risque visé</dt><dd class="num" id="oRiskTarget">—</dd>
+            <dt>Risque réel (frais inclus)</dt><dd class="num" id="oRiskReal">—</dd>
+            <dt>dont frais</dt><dd class="num" id="oFees">—</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h2>Verdict des règles</h2>
+          <ul class="rules" id="rules"></ul>
+          <div style="display:grid;gap:12px;margin-top:12px">
+            <button class="btn primary" id="bSave" disabled>Enregistrer le trade</button>
+            <div class="override">
+              <p>Tu veux le prendre quand même ? Il sera marqué « hors règles » et comptera contre ton taux de discipline.</p>
+              <input id="fReason" placeholder="Pourquoi je sors des règles (obligatoire)">
+              <button class="btn danger" id="bForce" disabled>Enregistrer hors règles</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- POSITIONS OUVERTES -->
+  <section id="view-open" hidden>
+    <div class="card" style="display:grid;gap:12px">
+      <h2>Positions ouvertes</h2>
+      <div class="sub">Quand le stop est touché ou que tu sors, saisis le prix de sortie. Le résultat est calculé net de frais.</div>
+      <div id="openList" style="display:grid;gap:12px"></div>
+    </div>
+  </section>
+
+  <!-- JOURNAL -->
+  <section id="view-journal" hidden>
+    <div style="display:grid;gap:16px">
+      <div class="tiles" id="tiles"></div>
+      <div class="card">
+        <h2>Discipline : est-ce que respecter les règles paie ?</h2>
+        <div class="compare" id="compare"></div>
+      </div>
+      <div class="card">
+        <h2>Trades clôturés</h2>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Date</th><th>Paire</th><th>Sens</th><th>Lots</th><th class="r">Résultat (R)</th><th class="r">Résultat (€)</th><th>Règles</th><th></th></tr></thead>
+          <tbody id="closedBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REGLAGES -->
+  <section id="view-settings" hidden>
+    <div style="display:grid;gap:16px">
+      <div class="card" style="display:grid;gap:16px">
+        <h2>Capital et risque</h2>
+        <div class="fields">
+          <label class="f" for="sCapital">Capital de départ (€)<input class="num" id="sCapital" inputmode="decimal"></label>
+          <label class="f" for="sFreq">Fréquence des opportunités
+            <select id="sFreq">
+              <option value="many">Beaucoup : 0,5 % par trade</option>
+              <option value="mid">Modérée : 1 % par trade</option>
+              <option value="few">Rare : 1,5 % par trade</option>
+            </select></label>
+          <label class="f" for="sMaxTotal">Risque total max ouvert (%)<input class="num" id="sMaxTotal" inputmode="decimal"></label>
+          <label class="f" for="sMaxCcy">Positions max par devise<input class="num" id="sMaxCcy" inputmode="numeric"></label>
+        </div>
+        <h2>Horaires et conversion</h2>
+        <div class="fields">
+          <label class="f" for="sStart">Début des entrées (h, Paris)<input class="num" id="sStart" inputmode="numeric"></label>
+          <label class="f" for="sEnd">Fin des entrées (h, Paris)<input class="num" id="sEnd" inputmode="numeric"></label>
+          <label class="f" for="sEurUsd">Cours EUR/USD (conversion en €)<input class="num" id="sEurUsd" inputmode="decimal"></label>
+        </div>
+        <h2>Frais (à vérifier sur ton compte Pepperstone)</h2>
+        <div class="fields">
+          <label class="f" for="sComm">Commission aller-retour (€ par lot)<input class="num" id="sComm" inputmode="decimal"></label>
+          <label class="f" for="sSlip">Glissement prévu (pips)<input class="num" id="sSlip" inputmode="decimal"></label>
+        </div>
+        <div class="fields" id="spreadFields"></div>
+        <div><button class="btn primary" id="bSaveSettings">Enregistrer les réglages</button></div>
+      </div>
+      <div class="card" style="display:grid;gap:12px">
+        <h2>Sauvegarde</h2>
+        <div class="sub" id="fichierLigne">Fichier de données : —</div>
+        <div class="ligne">
+          <button class="btn ghost" id="bExport" type="button">Exporter (JSON)</button>
+          <button class="btn danger" id="bImport" type="button">Importer (remplace tout)</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
 
 <dialog id="dlgAide">
   <form method="dialog">
     <h3>Aide</h3>
     <div class="aide"><nav id="aideNav"></nav><article id="aideTexte"></article></div>
-    <div class="actions"><span class="version" id="aideVersion" style="margin-right:auto;align-self:center"></span><button class="btn on" type="submit">Fermer</button></div>
+    <div class="actions"><span class="sub" id="aideVersion" style="margin-right:auto;align-self:center"></span><button class="btn primary small" type="submit">Fermer</button></div>
   </form>
 </dialog>
 
+<script src="calculs.js"></script>
 <script>
 'use strict';
-/* ---------- Socle : utilitaires communs à toute l'application ---------- */
-const $ = (s) => document.querySelector(s);
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+/* ───────── Socle ───────── */
+const C = window.Calculs;
 const BUREAU = !!window.appli;            // false = page ouverte dans un navigateur (mode autonome)
-// Temporisations (ms) : réglées en un seul endroit
-const TEMPO = {toast: 4500, toastAction: 6500, clignote: 2400, verifMaj: 4000};
+const TEMPO = {toast: 2600, toastAction: 6500, verifMaj: 4000, confirmer: 3000};
 const messageErreur = (e) => String(e && e.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
-const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} } };
+const local = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} } };
 
-// Notification en bas d'écran, avec un bouton facultatif (« Annuler », « Voir »…)
-let tToast = null;
-function toast(msg, action, fn){
-  document.querySelectorAll('.toast').forEach(x => x.remove()); clearTimeout(tToast);
-  const el = document.createElement('div'); el.className = 'toast'; el.innerHTML = `<span>${esc(msg)}</span>`;
-  if (action){ const b = document.createElement('button'); b.type = 'button'; b.textContent = action; b.onclick = () => { el.remove(); fn(); }; el.appendChild(b); }
-  document.body.appendChild(el); tToast = setTimeout(() => el.remove(), action ? TEMPO.toastAction : TEMPO.toast);
+const CHECKS = [
+  ["Tendance H4","droite avec au moins 2 touches + structure de Dow (sommets et creux dans le sens du trade)"],
+  ["EMA 100","prix du bon côté : au-dessus pour acheter, en dessous pour vendre"],
+  ["Rejet","rebond net sur la droite de tendance H4"],
+  ["Figure H1","continuation (impulsion plus grande que la figure) ou retournement sur un niveau majeur"],
+  ["Entrée","bougie clôturée au-delà de la ligne de cou, sans anticipation"],
+  ["Stop","au-delà du dernier creux ou sommet, avec une marge"],
+  ["Pas de renfort","je n'ajoute pas à une position déjà ouverte pour me refaire"],
+  ["Gestion","pas de take profit fixe, stop déplacé seulement sur un nouveau creux ou sommet confirmé"],
+  ["Calme","je ne trade pas pour me venger d'une perte"],
+  ["Journal","je note ce trade avant d'avancer la bougie suivante"]
+];
+
+let CFG = {};
+let settings = structuredClone(C.DEFAUTS);
+let trades = [];          // {id, date, pair, dir, entry, stop, lots, riskEUR, compliant, reason, status, exit, exitDate, pnl, r}
+let dir = "long";
+let pret = false;         // false tant que les données ne sont pas chargées
+
+const closed = () => trades.filter(t => t.status === "closed").sort((a,b) => a.exitDate < b.exitDate ? -1 : 1);
+const open = () => trades.filter(t => t.status === "open");
+const capitalNow = () => settings.capital + closed().reduce((a,t) => a + t.pnl, 0);
+
+/* ───────── Stockage : fichier local (bureau), sinon navigateur ───────── */
+const CLE_LOCALE = "guardpaper-trading";
+async function charger(){
+  let d = null;
+  try {
+    if (BUREAU) d = await window.appli.lireDonnees();
+    else d = JSON.parse(local.get(CLE_LOCALE) || "null");
+    const propre = d ? C.validerDonnees(d) : {settings: structuredClone(C.DEFAUTS), trades: []};
+    settings = propre.settings; trades = propre.trades; pret = true;
+    if (!BUREAU) showBanner("Mode navigateur : les données restent dans ce navigateur. Utilise l'application de bureau pour un vrai fichier de sauvegarde.");
+    else hideBanner();
+  } catch(e){
+    pret = false;
+    showBanner("Données illisibles : rien ne sera enregistré tant que ce n'est pas réglé. " + messageErreur(e));
+  }
+  renderSettings(); renderAll();
 }
-// Faire défiler jusqu'à un élément et le faire clignoter
-function clignoter(el){ if (!el) return; el.scrollIntoView({behavior: 'smooth', block: 'center'}); el.classList.remove('focus'); void el.offsetWidth; el.classList.add('focus'); setTimeout(() => el.classList.remove('focus'), TEMPO.clignote); }
-
-/* ---------- Thème : automatique (système) → clair → sombre ---------- */
-function appliquerTheme(){ const t = store.get('theme'); if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
-$('#btnTheme').onclick = () => { const t = store.get('theme'), suivant = !t ? 'light' : t === 'light' ? 'dark' : ''; store.set('theme', suivant); appliquerTheme(); toast(`Thème : ${suivant === 'light' ? 'clair' : suivant === 'dark' ? 'sombre' : 'automatique'}`); };
-appliquerTheme();
-
-/* ---------- Données de l'application ----------
-   Bureau : un fichier JSON dans le coffre (synchronisé entre ordinateurs).
-   Navigateur : localStorage (mode autonome, pour une version web). */
-let CFG = {}, etat = {dossier: '02.Area'};
-async function chargerEtat(){
-  if (BUREAU){ const d = await window.appli.lireDonnees(); if (d && d.etat) etat = {...etat, ...d.etat}; }
-  else { try { etat = {...etat, ...JSON.parse(store.get('etat') || '{}')}; } catch(e){} }
+// Écrit l'état complet ; en cas d'échec, revient à ce qui est sur le disque
+async function persister(){
+  try {
+    if (BUREAU) await window.appli.ecrireDonnees({settings, trades});
+    else local.set(CLE_LOCALE, JSON.stringify({settings, trades}));
+  } catch(e){ toast("Échec de l'enregistrement : " + messageErreur(e)); await charger(); throw e; }
 }
-let tSauver = null;
-function sauver(){
-  clearTimeout(tSauver);
-  tSauver = setTimeout(() => { if (BUREAU && CFG.coffre) window.appli.ecrireDonnees({etat}).catch(e => alert('Enregistrement impossible : ' + messageErreur(e))); else store.set('etat', JSON.stringify(etat)); }, 400);
-}
-
-/* ---------- EXEMPLE (à remplacer) : lire les notes d'un dossier et leurs propriétés ---------- */
-async function afficher(){
-  $('#nomDossier').textContent = etat.dossier;
-  const box = $('#liste');
-  if (!BUREAU){ box.innerHTML = '<div class="vide">Mode navigateur : la lecture du coffre n\'est possible que dans l\'application de bureau.</div>'; return; }
-  if (!CFG.coffre){ box.innerHTML = '<div class="vide">Choisis ton coffre Obsidian dans ⚙️ Réglages.</div>'; return; }
-  let notes = [];
-  try { notes = await window.appli.lireNotes(etat.dossier); } catch(e){ box.innerHTML = `<div class="vide">${esc(messageErreur(e))}</div>`; return; }
-  if (!notes.length){ box.innerHTML = '<div class="vide">Aucune note dans ce dossier.</div>'; return; }
-  box.innerHTML = '';
-  notes.sort((a, b) => b.mtime - a.mtime).forEach(n => {
-    const el = document.createElement('div'); el.className = 'note';
-    const props = Object.keys(n.proprietes).slice(0, 4).join(', ');
-    el.innerHTML = `<span>${esc(n.nom.replace(/\.md$/, ''))}</span><small>${esc(props || 'sans propriétés')} · ${new Date(n.mtime).toLocaleDateString('fr-FR')}</small>`;
-    el.ondblclick = () => window.appli.ouvrirLien(`obsidian://open?vault=${encodeURIComponent(CFG.nomCoffre)}&file=${encodeURIComponent(etat.dossier + '/' + n.nom)}`);
-    el.title = 'Double-clic : ouvrir dans Obsidian';
-    box.appendChild(el);
-  });
-}
-$('#btnRecharger').onclick = afficher;
-
-/* ---------- Réglages ---------- */
-$('#btnReglages').onclick = () => { $('#rCoffre').value = CFG.coffre || ''; $('#rDossier').value = etat.dossier; $('#dlgReglages').showModal(); };
-$('#rFermer').onclick = () => $('#dlgReglages').close();
-$('#rChoisir').onclick = async () => {
-  if (!BUREAU) return alert('Disponible dans l\'application de bureau.');
-  try { const c = await window.appli.choisirCoffre(); if (c){ CFG = await window.appli.config(); $('#rCoffre').value = c; await chargerEtat(); } } catch(e){ alert(messageErreur(e)); }
+const store = {
+  async putTrade(t){ const i = trades.findIndex(x => x.id === t.id); if (i >= 0) trades[i] = t; else trades.push(t); await persister(); renderAll(); },
+  async delTrade(id){ trades = trades.filter(x => x.id !== id); await persister(); renderAll(); },
+  async putSettings(s){ settings = s; await persister(); renderSettings(); renderAll(); }
 };
-$('#formReglages').onsubmit = () => { etat.dossier = $('#rDossier').value.trim() || etat.dossier; sauver(); afficher(); toast('Réglages enregistrés.'); };
 
-/* ---------- Aide intégrée : à compléter à CHAQUE nouvelle fonction ---------- */
+/* ───────── Règles ───────── */
+function evaluate(){
+  const pair = $("fPair").value, entry = C.nombre($("fEntry").value), stop = C.nombre($("fStop").value);
+  const dt = $("fDate").value;
+  const checks = [...document.querySelectorAll("#checklist input")];
+  const nChecked = checks.filter(c => c.checked).length;
+  const riskPct = C.RISQUE_PAR_FREQ[settings.freq];
+  const haveNums = isFinite(entry) && isFinite(stop) && entry > 0 && stop > 0;
+  const sideOK = haveNums && (dir === "long" ? stop < entry : stop > entry);
+  const sz = sideOK ? C.taillePosition({paire: pair, entree: entry, stop, capital: capitalNow(), risquePct: riskPct, reglages: settings}) : null;
+
+  const rules = [];
+  rules.push({ok: nChecked === CHECKS.length, txt: `Checklist complète (${nChecked}/${CHECKS.length})`});
+  rules.push({ok: sideOK, txt: haveNums ? (sideOK ? "Stop du bon côté du prix" : (dir === "long" ? "Pour un achat, le stop doit être sous l'entrée" : "Pour une vente, le stop doit être au-dessus de l'entrée")) : "Saisis l'entrée et le stop"});
+  rules.push({ok: !!sz && sz.lots >= 0.01, txt: sz ? (sz.lots >= 0.01 ? "Taille minimale possible (0,01 lot)" : "Stop trop large pour ton capital : même 0,01 lot dépasse le risque") : "Taille calculée"});
+  const samePair = open().some(t => t.pair === pair);
+  rules.push({ok: !samePair, txt: samePair ? `Déjà une position sur ${pair} : pas de renforcement` : "Pas de position déjà ouverte sur cette paire"});
+  const over = C.devises(pair).filter(c => open().filter(t => C.devises(t.pair).includes(c)).length >= settings.maxCcy);
+  rules.push({ok: over.length === 0, txt: over.length ? `Déjà ${settings.maxCcy} positions sur ${over.join(" et ")} (corrélation)` : `Au plus ${settings.maxCcy} positions par devise`});
+  const openRisk = open().reduce((a,t) => a + t.riskEUR, 0);
+  const maxRisk = capitalNow() * settings.maxTotal / 100;
+  const totalOK = !sz || openRisk + sz.risqueReel <= maxRisk + 1e-9;
+  rules.push({ok: totalOK, txt: `Risque total ouvert ≤ ${fmtPct(settings.maxTotal)} (${fmtEur(openRisk + (sz ? sz.risqueReel : 0))} / ${fmtEur(maxRisk)})`});
+  let hourOK = false, hourTxt = "Saisis la date et l'heure";
+  if (dt){ const h = new Date(dt).getHours(); hourOK = h >= settings.start && h < settings.end;
+    hourTxt = hourOK ? `Heure d'entrée dans la plage ${settings.start}h-${settings.end}h` : `Hors plage horaire (${settings.start}h-${settings.end}h)`; }
+  rules.push({ok: hourOK, txt: hourTxt});
+  const newsOK = !$("fNews").checked;
+  rules.push({ok: newsOK, txt: newsOK ? "Pas d'annonce 3 étoiles dans les 2 h" : "Annonce 3 étoiles proche : on attend"});
+
+  // Affichage calcul
+  $("oLots").textContent = sz ? fmtNum(sz.lots, 2) : "—";
+  $("oUnits").textContent = sz ? Math.round(sz.lots * 100000).toLocaleString("fr-FR") : "—";
+  $("oPips").textContent = sz ? fmtNum(sz.pipsStop, 1) + " pips" : "—";
+  $("oRiskTarget").textContent = sz ? `${fmtEur(sz.risqueVise)} (${fmtPct(riskPct)})` : `${fmtPct(riskPct)} du capital`;
+  $("oRiskReal").textContent = sz ? fmtEur(sz.risqueReel) : "—";
+  $("oFees").textContent = sz ? fmtEur(sz.frais) : "—";
+
+  $("rules").innerHTML = rules.map(r => `<li class="${r.ok ? "ok" : "bad"}"><span class="ic">${r.ok ? "✓" : "✕"}</span><span>${esc(r.txt)}</span></li>`).join("");
+  const allOK = rules.every(r => r.ok);
+  const canForce = !!sz && sz.lots >= 0.01 && $("fReason").value.trim().length >= 5;
+  $("bSave").disabled = !allOK || !pret;
+  $("bForce").disabled = allOK || !canForce || !pret;
+  return {allOK, sz, pair, entry, stop, dt};
+}
+
+/* ───────── Enregistrement ───────── */
+async function saveTrade(force){
+  const e = evaluate();
+  if (!e.sz) return;
+  const t = {id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    date: e.dt, pair: e.pair, dir, entry: e.entry, stop: e.stop, lots: e.sz.lots,
+    riskEUR: Math.round(e.sz.risqueReel * 100) / 100, compliant: !force,
+    reason: force ? $("fReason").value.trim() : "", status: "open", exit: null, exitDate: null, pnl: 0, r: 0};
+  try { await store.putTrade(t); toast(force ? "Trade enregistré hors règles" : "Trade enregistré"); resetForm(); } catch {}
+}
+function resetForm(){
+  $("fEntry").value = ""; $("fStop").value = ""; $("fReason").value = ""; $("fNews").checked = false;
+  document.querySelectorAll("#checklist input").forEach(c => c.checked = false);
+  evaluate();
+}
+
+/* ───────── Rendu ───────── */
+function renderOpen(){
+  const list = open();
+  $("openCount").textContent = list.length;
+  if (!list.length){ $("openList").innerHTML = `<div class="empty">Aucune position ouverte.</div>`; return; }
+  $("openList").innerHTML = list.map(t => `
+    <div class="card" style="padding:12px">
+      <div class="openrow">
+        <div><div class="sub">${esc(fmtDate(t.date))}</div><b>${esc(t.pair)}</b> <span class="pill ${t.dir}">${t.dir === "long" ? "Achat" : "Vente"}</span> ${t.compliant ? "" : '<span class="pill badp">hors règles</span>'}</div>
+        <div class="num sub">Entrée ${fmtPrice(t.pair, t.entry)}<br>Stop ${fmtPrice(t.pair, t.stop)}</div>
+        <div class="num sub">${fmtNum(t.lots,2)} lot<br>Risque ${fmtEur(t.riskEUR)}</div>
+        <label class="f" for="x-${t.id}">Prix de sortie<input class="num" id="x-${t.id}" inputmode="decimal" placeholder="${fmtPrice(t.pair, t.stop)}"></label>
+        <label class="f" for="xd-${t.id}">Date de sortie<input type="datetime-local" id="xd-${t.id}" value="${nowLocal()}"></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary small" data-close="${t.id}">Clôturer</button><button class="btn ghost small" data-del="${t.id}">Supprimer</button></div>
+      </div>
+    </div>`).join("");
+}
+function renderJournal(){
+  const c = closed();
+  const s = C.statistiques(c, trades);
+  const tile = (k, v, cls="") => `<div class="tile"><div class="k">${k}</div><div class="v ${cls}">${v}</div></div>`;
+  const pf = s.profitFactor;
+  $("tiles").innerHTML =
+    tile("Trades clôturés", `${s.n}<span class="sub"> / 100</span>`) +
+    tile("Gagnants", s.n ? fmtPct(s.pctGagnants, 0) : "—") +
+    tile("Profit factor", isFinite(pf) ? fmtNum(pf, 2) : (pf === Infinity ? "∞" : "—"), isFinite(pf) ? (pf >= 1 ? "pos" : "neg") : "") +
+    tile("Total", s.n ? `${sgn(s.totalR)} R` : "—", s.totalR >= 0 ? "pos" : "neg") +
+    tile("Total (€)", s.n ? fmtEur(s.totalEUR) : "—", s.totalEUR >= 0 ? "pos" : "neg") +
+    tile("Gain moyen", isFinite(s.gainMoyenR) ? `${sgn(s.gainMoyenR)} R` : "—") +
+    tile("Perte moyenne", isFinite(s.perteMoyenneR) ? `${sgn(s.perteMoyenneR)} R` : "—") +
+    tile("Drawdown max", s.n ? `${fmtNum(s.drawdownR, 2)} R` : "—") +
+    tile("Discipline", isFinite(s.discipline) ? fmtPct(s.discipline, 0) : "—", isFinite(s.discipline) ? (s.discipline >= 90 ? "pos" : "neg") : "");
+  const grp = arr => arr.length ? `${arr.length} trade${arr.length > 1 ? "s" : ""}, ${sgn(arr.reduce((a,t) => a + t.r, 0) / arr.length)} R en moyenne` : "aucun trade";
+  $("compare").innerHTML =
+    `<div><div class="sub">Dans les règles</div><b>${grp(c.filter(t => t.compliant))}</b></div>` +
+    `<div><div class="sub">Hors règles</div><b>${grp(c.filter(t => !t.compliant))}</b></div>`;
+  $("closedBody").innerHTML = s.n ? [...c].reverse().map(t => `
+    <tr><td>${esc(fmtDate(t.date))}</td><td>${esc(t.pair)}</td><td><span class="pill ${t.dir}">${t.dir === "long" ? "Achat" : "Vente"}</span></td>
+    <td class="num">${fmtNum(t.lots,2)}</td><td class="num r ${t.r >= 0 ? "pos" : "neg"}">${sgn(t.r)}</td><td class="num r ${t.pnl >= 0 ? "pos" : "neg"}">${fmtEur(t.pnl)}</td>
+    <td>${t.compliant ? '<span class="pill okp">OK</span>' : `<span class="pill badp" title="${esc(t.reason)}">hors règles</span>`}</td>
+    <td><button class="btn ghost small" data-del="${t.id}">Supprimer</button></td></tr>`).join("")
+    : `<tr><td colspan="8" class="empty">Aucun trade clôturé pour l'instant.</td></tr>`;
+}
+function renderSettings(){
+  $("sCapital").value = fmtNum(settings.capital, 0); $("sFreq").value = settings.freq;
+  $("sMaxTotal").value = fmtNum(settings.maxTotal, 1); $("sMaxCcy").value = settings.maxCcy;
+  $("sStart").value = settings.start; $("sEnd").value = settings.end; $("sEurUsd").value = fmtNum(settings.eurusd, 4);
+  $("sComm").value = fmtNum(settings.comm, 2); $("sSlip").value = fmtNum(settings.slip, 1);
+  $("spreadFields").innerHTML = C.PAIRES.map(p => `<label class="f" for="sp-${p.replace("/","")}">Spread ${p} (pips)<input class="num" id="sp-${p.replace("/","")}" inputmode="decimal" value="${fmtNum(settings.spreads[p] ?? 1, 1)}"></label>`).join("");
+  $("fichierLigne").textContent = BUREAU ? `Fichier de données : ${CFG.fichier || "—"}` : "Mode navigateur : données gardées dans ce navigateur.";
+}
+function renderAll(){
+  $("capLine").textContent = "Capital : " + fmtEur(capitalNow());
+  renderOpen(); renderJournal(); evaluate();
+}
+
+/* ───────── Actions ───────── */
+async function closeTrade(id){
+  const t = trades.find(x => x.id === id); if (!t) return;
+  const exit = C.nombre($("x-" + id).value);
+  if (!isFinite(exit) || exit <= 0){ toast("Saisis un prix de sortie valide"); return; }
+  const {pnl, r} = C.resultatCloture(t, exit, settings);
+  const upd = {...t, status: "closed", exit, exitDate: $("xd-" + id).value || nowLocal(), pnl: Math.round(pnl * 100) / 100, r: Math.round(r * 100) / 100};
+  try { await store.putTrade(upd); toast(`Clôturé : ${sgn(upd.r)} R`); } catch {}
+}
+// Suppression : deux clics (confirmation), puis « Annuler » dans la notification
+const pendingDel = new Set();
+async function deleteTrade(id, btn){
+  if (!pendingDel.has(id)){ pendingDel.add(id); btn.textContent = "Confirmer ?"; setTimeout(() => { pendingDel.delete(id); if (btn.isConnected) btn.textContent = "Supprimer"; }, TEMPO.confirmer); return; }
+  pendingDel.delete(id);
+  const ancien = trades.find(x => x.id === id);
+  try { await store.delTrade(id); toast("Trade supprimé", "Annuler", () => store.putTrade(ancien).catch(() => {})); } catch {}
+}
+async function saveSettings(){
+  const s = {
+    capital: C.nombre($("sCapital").value), freq: $("sFreq").value, maxTotal: C.nombre($("sMaxTotal").value), maxCcy: Math.round(C.nombre($("sMaxCcy").value)),
+    start: Math.round(C.nombre($("sStart").value)), end: Math.round(C.nombre($("sEnd").value)), eurusd: C.nombre($("sEurUsd").value),
+    comm: C.nombre($("sComm").value), slip: C.nombre($("sSlip").value), spreads: {}
+  };
+  C.PAIRES.forEach(p => s.spreads[p] = C.nombre($("sp-" + p.replace("/","")).value));
+  const bad = Object.entries(s).filter(([k,v]) => k !== "freq" && k !== "spreads" && !(isFinite(v) && v >= 0)).map(([k]) => k);
+  if (bad.length || Object.values(s.spreads).some(v => !(isFinite(v) && v >= 0)) || s.capital <= 0 || s.eurusd <= 0 || s.start >= s.end || s.end > 24){ toast("Un réglage n'est pas un nombre valide"); return; }
+  try { await store.putSettings(s); toast("Réglages enregistrés"); } catch {}
+}
+async function exporter(){
+  if (!BUREAU){
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify({settings, trades}, null, 2)], {type: "application/json"}));
+    a.download = `guardpaper-trading-${new Date().toISOString().slice(0,10)}.json`; a.click(); return;
+  }
+  try { const f = await window.appli.exporter(); if (f) toast("Exporté : " + f); } catch(e){ toast("Export impossible : " + messageErreur(e)); }
+}
+async function importer(){
+  if (!BUREAU){ toast("Import disponible dans l'application de bureau."); return; }
+  if (!confirm(`Importer un fichier remplace TOUS tes trades actuels (${trades.length}) et tes réglages.\n\nUne copie de secours de l'ancien fichier est gardée à côté (« .avant-import.json »).\n\nContinuer ?`)) return;
+  try {
+    const r = await window.appli.importer(); if (!r) return;
+    await charger();
+    toast(`Importé : ${r.trades} trades.` + (r.secours ? " Ancien fichier gardé en secours." : ""));
+  } catch(e){ toast("Import impossible : " + messageErreur(e)); }
+}
+
+/* ───────── Aide intégrée : à compléter à CHAQUE nouvelle fonction ───────── */
 const AIDE = [
-  {t: '1. Premiers pas', h: `<p>Ouvre <b>⚙️ Réglages</b>, choisis ton <b>coffre Obsidian</b> et le dossier de notes à afficher.</p>
-    <p class="astuce">Tes données restent dans tes fichiers : l'application ne garde que le chemin du coffre, sur cet ordinateur.</p>`},
-  {t: '2. Thème', h: `<p>Le bouton <b>◐</b> passe de automatique (suit le système) à clair, puis sombre.</p>`},
-  {t: '3. Mises à jour', h: `<p>Au démarrage, l'application vérifie s'il existe une nouvelle version. Si oui, le bouton jaune <b>⬆ Mise à jour</b> apparaît : clique dessus pour la commande à lancer, ou mets à jour depuis Warehouse.</p>`},
+  {t: "1. Principe", h: `<p>GuardPaper Trading est un <b>garde-fou</b> pour le swing trading forex selon la méthode MTF 2.0. Il <b>contrôle</b> chaque trade avant que tu le prennes ; il ne décide jamais à ta place et ne passe aucun ordre.</p>
+    <p>Un trade ne s'enregistre que si <b>toutes les règles sont vertes</b>. Sinon, tu peux l'enregistrer « hors règles » avec une raison écrite : il comptera contre ton taux de discipline.</p>`},
+  {t: "2. Nouveau trade", h: `<p>Saisis la date (en Bar Replay : celle de la bougie), la paire, le sens, le prix d'entrée et le stop. Les prix acceptent la virgule.</p>
+    <p>Coche les 10 points de la checklist MTF 2.0. À droite, la <b>taille de position</b> se calcule en direct : risque fixe du capital courant, spread, glissement et commission compris.</p>
+    <p class="astuce">L'annonce économique est pour l'instant une case à cocher : vérifie le calendrier Investing (lien dans le cadre jaune).</p>`},
+  {t: "3. Les règles", h: `<ul>
+    <li><b>Checklist</b> : les 10 cases cochées.</li>
+    <li><b>Stop</b> : sous l'entrée pour un achat, au-dessus pour une vente.</li>
+    <li><b>Taille minimale</b> : au moins 0,01 lot, sinon le stop est trop large pour ton capital.</li>
+    <li><b>Pas de renforcement</b> : une seule position par paire.</li>
+    <li><b>Exposition par devise</b> : au plus N positions contenant la même devise (réglage).</li>
+    <li><b>Risque total</b> : la somme des risques ouverts ne dépasse pas le maximum (réglage).</li>
+    <li><b>Horaires</b> : heure d'entrée dans la plage réglée (heure de Paris).</li>
+    <li><b>Annonce</b> : pas d'annonce 3 étoiles dans les 2 h.</li></ul>`},
+  {t: "4. Positions et journal", h: `<p>Dans <b>Positions ouvertes</b>, saisis le prix et la date de sortie puis <b>Clôturer</b> : le résultat est calculé net de frais, en euros et en R (résultat ÷ risque réel).</p>
+    <p><b>Journal et stats</b> donne le nombre de trades (objectif 100), le % de gagnants, le profit factor, le total, le drawdown max et le <b>taux de discipline</b>, avec la comparaison « dans les règles / hors règles ».</p>
+    <p class="astuce">Supprimer demande deux clics ; juste après, « Annuler » dans la notification remet le trade.</p>`},
+  {t: "5. Réglages", h: `<p>Capital de départ, fréquence des opportunités (0,5 / 1 / 1,5 % par trade), risque total max, positions max par devise, horaires, cours EUR/USD de conversion, commission, glissement et spread de chaque paire.</p>
+    <p>Le risque par trade s'applique au <b>capital courant</b> : capital de départ + résultats des trades clôturés.</p>`},
+  {t: "6. Sauvegarde", h: `<p>Tes trades et réglages sont dans un fichier JSON sur cet ordinateur (chemin affiché dans <b>Réglages → Sauvegarde</b>), jamais en ligne.</p>
+    <p><b>Exporter</b> écrit une copie où tu veux. <b>Importer</b> remplace tout, après confirmation, et garde l'ancien fichier en secours (« .avant-import.json »).</p>`},
+  {t: "7. Thème et mises à jour", h: `<p>Le bouton <b>◐</b> passe de automatique (suit le système) à clair, puis sombre.</p>
+    <p>Au démarrage, l'application vérifie s'il existe une nouvelle version. Si oui, le bouton jaune <b>⬆ Mise à jour</b> apparaît.</p>`},
 ];
 function ouvrirAide(i = 0){
-  const nav = $('#aideNav'); nav.innerHTML = '';
-  AIDE.forEach((s, k) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (k === i ? ' on' : ''); b.textContent = s.t; b.onclick = () => ouvrirAide(k); nav.appendChild(b); });
-  $('#aideTexte').innerHTML = `<h3>${esc(AIDE[i].t)}</h3>${AIDE[i].h}`;
-  $('#aideVersion').textContent = CFG.version ? `${CFG.nom} ${CFG.version}` : '';
-  if (!$('#dlgAide').open) $('#dlgAide').showModal();
+  const nav = $("aideNav"); nav.innerHTML = "";
+  AIDE.forEach((s, k) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn ghost small" + (k === i ? " on" : ""); b.textContent = s.t; b.onclick = () => ouvrirAide(k); nav.appendChild(b); });
+  $("aideTexte").innerHTML = `<h3>${esc(AIDE[i].t)}</h3>${AIDE[i].h}`;
+  $("aideVersion").textContent = CFG.version ? `${CFG.nom} ${CFG.version}` : "";
+  if (!$("dlgAide").open) $("dlgAide").showModal();
 }
-$('#btnAide').onclick = () => ouvrirAide(0);
 
-/* ---------- Mises à jour : vérifiées au démarrage ---------- */
+/* ───────── Thème : automatique (système) → clair → sombre ───────── */
+function appliquerTheme(){ const t = local.get("theme"); if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+$("btnTheme").onclick = () => { const t = local.get("theme"), suivant = !t ? "light" : t === "light" ? "dark" : ""; local.set("theme", suivant); appliquerTheme(); toast(`Thème : ${suivant === "light" ? "clair" : suivant === "dark" ? "sombre" : "automatique"}`); };
+appliquerTheme();
+
+/* ───────── Mises à jour : vérifiées au démarrage ───────── */
 async function verifierMaj(){
   if (!BUREAU) return;
   const r = await window.appli.verifierMaj().catch(() => null);
   if (!r || !r.nouvelle) return;
-  const b = $('#btnMaj'); b.classList.remove('hidden'); b.title = `Version ${r.derniere} disponible (installée : ${r.actuelle})`;
+  const b = $("btnMaj"); b.classList.remove("hidden"); b.title = `Version ${r.derniere} disponible (installée : ${r.actuelle})`;
   b.onclick = () => { navigator.clipboard.writeText(r.commande).catch(() => {}); alert(`Version ${r.derniere} disponible.\n\nCommande copiée, à coller dans un terminal :\n${r.commande}\n\nOu : Warehouse → rafraîchir → Mettre à jour.`); };
 }
 
-/* ---------- Démarrage ---------- */
+/* ───────── Utilitaires ───────── */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function fmtNum(v, d){ return isFinite(v) ? v.toLocaleString("fr-FR", {minimumFractionDigits: d, maximumFractionDigits: d}) : "—"; }
+function fmtEur(v){ return isFinite(v) ? v.toLocaleString("fr-FR", {style: "currency", currency: "EUR"}) : "—"; }
+function fmtPct(v, d=1){ return isFinite(v) ? fmtNum(v, d) + " %" : "—"; }
+function sgn(v){ return isFinite(v) ? (v > 0 ? "+" : "") + fmtNum(v, 2) : "—"; }
+function fmtPrice(pair, v){ return fmtNum(v, pair.includes("JPY") ? 3 : 5); }
+function fmtDate(s){ if (!s) return ""; const d = new Date(s); return isNaN(d) ? s : d.toLocaleString("fr-FR", {dateStyle: "short", timeStyle: "short"}); }
+function nowLocal(){ const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+let toastT = null;
+function toast(msg, action, fn){
+  document.querySelectorAll(".toast").forEach(x => x.remove()); clearTimeout(toastT);
+  const el = document.createElement("div"); el.className = "toast"; el.setAttribute("role", "status"); el.innerHTML = `<span>${esc(msg)}</span>`;
+  if (action){ const b = document.createElement("button"); b.type = "button"; b.textContent = action; b.onclick = () => { el.remove(); fn(); }; el.appendChild(b); }
+  document.body.appendChild(el); toastT = setTimeout(() => el.remove(), action ? TEMPO.toastAction : TEMPO.toast);
+}
+function showBanner(m){ const b = $("storeBanner"); b.textContent = m; b.hidden = false; }
+function hideBanner(){ $("storeBanner").hidden = true; }
+
+/* ───────── Démarrage ───────── */
+$("fPair").innerHTML = C.PAIRES.map(p => `<option>${p}</option>`).join("");
+$("checklist").innerHTML = CHECKS.map(([t, d], i) => `<label for="c${i}"><input type="checkbox" id="c${i}"><span><b>${i+1}. ${t}</b> : ${d}</span></label>`).join("");
+$("fDate").value = nowLocal();
+function setDir(d){ dir = d; $("bLong").className = d === "long" ? "on-long" : ""; $("bShort").className = d === "short" ? "on-short" : ""; evaluate(); }
+$("bLong").onclick = () => setDir("long"); $("bShort").onclick = () => setDir("short");
+document.querySelector("#view-new").addEventListener("input", evaluate);
+document.querySelector("#view-new").addEventListener("change", evaluate);
+$("bSave").onclick = () => saveTrade(false);
+$("bForce").onclick = () => saveTrade(true);
+$("bSaveSettings").onclick = saveSettings;
+$("bExport").onclick = exporter;
+$("bImport").onclick = importer;
+$("btnAide").onclick = () => ouvrirAide(0);
+document.addEventListener("click", e => {
+  const c = e.target.closest("[data-close]"); if (c) closeTrade(c.dataset.close);
+  const d = e.target.closest("[data-del]"); if (d) deleteTrade(d.dataset.del, d);
+});
+document.querySelectorAll("nav[role=tablist] button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav[role=tablist] button").forEach(x => x.setAttribute("aria-selected", x === b ? "true" : "false"));
+  ["new","open","journal","settings"].forEach(v => $("view-" + v).hidden = v !== b.dataset.tab);
+});
+setDir("long");
 (async () => {
   if (BUREAU){
     CFG = await window.appli.config();
-    document.title = CFG.nom; $('#titre').textContent = CFG.nom; $('#version').textContent = 'v' + CFG.version;
-    window.appli.surDonneesChangees(async () => { await chargerEtat(); afficher(); toast('Données mises à jour depuis un autre appareil.'); });
+    document.title = CFG.nom; $("titre").textContent = CFG.nom; $("version").textContent = "v" + CFG.version;
+    window.appli.surDonneesChangees(async () => { await charger(); toast("Données mises à jour depuis le fichier."); });
   }
-  await chargerEtat(); afficher();
+  await charger();
   setTimeout(verifierMaj, TEMPO.verifMaj);
 })();
 </script>

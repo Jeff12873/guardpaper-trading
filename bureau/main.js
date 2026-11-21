@@ -1,73 +1,80 @@
 // Processus principal (Electron) : la seule partie qui touche au système.
-// Elle ouvre la fenêtre, sert l'interface (index.html) par le protocole app://, garde la configuration
-// propre à l'ordinateur, et expose à l'interface une liste fermée d'actions (voir preload.js).
+// Il ouvre la fenêtre, sert l'interface (index.html) par le protocole app://, lit et écrit le fichier
+// de données, et expose à l'interface une liste fermée d'actions (voir preload.js).
 //
-// Rien de personnel dans l'application ni dans le dépôt : la configuration vit dans le dossier de
-// l'utilisateur (~/.config/<Nom>), les données dans ses propres fichiers (coffre Obsidian).
+// Rien de personnel dans l'application ni dans le dépôt : les trades et réglages vivent dans
+// ~/.local/share/<nom>/donnees.json (variable GUARDPAPER_DONNEES pour un autre fichier, ex. tests).
 
 const { app, BrowserWindow, protocol, net, ipcMain, dialog, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
+const os = require('node:os');
 const { pathToFileURL } = require('node:url');
-const coffre = require('./coffre');
+const { ecrireAtomique } = require('./coffre');
+const Calculs = require('../calculs.js');
 const PAQUET = require('../package.json');
 
 const NOM = PAQUET.productName;
 const SCHEMA = PAQUET.name;                                   // app://<nom>/index.html
 const RACINE = path.join(__dirname, '..');
-const FICHIER_CONFIG = () => path.join(app.getPath('userData'), 'config.json');
+const FORMAT = `${SCHEMA}/1`;
 // Liste des versions publiées par le dépôt Flatpak (une ligne « dépôt vX.Y.Z » par application)
 const URL_VERSIONS = 'https://jeff12873.github.io/FlatKein/versions.txt';
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 
-// --- Configuration propre à cet ordinateur (chemins, jetons) ------------------------------
+// --- Fichier de données ---------------------------------------------------------------------
+// Dans le Flatpak, XDG_DATA_HOME pointe vers ~/.var/app/… : on vise le vrai ~/.local/share de l'hôte.
+const DOSSIER_DONNEES = process.env.HOST_XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
+const FICHIER = process.env.GUARDPAPER_DONNEES || path.join(DOSSIER_DONNEES, SCHEMA, 'donnees.json');
+const SECOURS = FICHIER.replace(/\.json$/, '') + '.avant-import.json';
 
-let config = { coffre: null, donnees: `${NOM}.json` };
-function chargerConfig() {
-  try { config = { ...config, ...JSON.parse(fs.readFileSync(FICHIER_CONFIG(), 'utf8')) }; } catch { /* premier lancement */ }
+async function lireFichier() {
+  try { return JSON.parse(await fsp.readFile(FICHIER, 'utf8')); }
+  catch (e) { if (e.code === 'ENOENT') return null; throw new Error(`Fichier de données illisible (${FICHIER}) : ${e.message}`); }
 }
-async function enregistrerConfig() { await coffre.ecrireAtomique(FICHIER_CONFIG(), JSON.stringify(config, null, 2)); }
-
-// Secrets ajoutés au build (GitHub Actions → bureau/secrets.json), jamais dans le dépôt
-const SECRETS = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'secrets.json'), 'utf8')); } catch { return {}; } })();
+let dernierEcrit = 0;
+async function ecrireFichier(donnees) {
+  const propre = Calculs.validerDonnees(donnees);           // jamais de données incohérentes sur le disque
+  await fsp.mkdir(path.dirname(FICHIER), { recursive: true });
+  dernierEcrit = Date.now();
+  await ecrireAtomique(FICHIER, JSON.stringify({ format: FORMAT, ...propre }, null, 2));
+}
 
 // --- Actions offertes à l'interface (IPC) --------------------------------------------------
 
-ipcMain.handle('config', () => ({ coffre: config.coffre, nomCoffre: config.coffre ? path.basename(config.coffre) : null, donnees: config.donnees, version: app.getVersion(), nom: NOM }));
+ipcMain.handle('config', () => ({ version: app.getVersion(), nom: NOM, fichier: FICHIER }));
+ipcMain.handle('lire-donnees', () => lireFichier());
+ipcMain.handle('ecrire-donnees', async (evenement, donnees) => { await ecrireFichier(donnees); return true; });
 
-ipcMain.handle('choisir-coffre', async (evenement) => {
+// Export : copie JSON lisible où l'utilisateur veut
+ipcMain.handle('exporter', async (evenement) => {
+  const date = new Date().toISOString().slice(0, 10);
+  const { canceled, filePath } = await dialog.showSaveDialog(BrowserWindow.fromWebContents(evenement.sender), {
+    title: 'Exporter le journal', defaultPath: path.join(app.getPath('downloads'), `${SCHEMA}-${date}.json`),
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+  });
+  if (canceled || !filePath) return null;
+  const donnees = (await lireFichier()) || { settings: Calculs.DEFAUTS, trades: [] };
+  await ecrireAtomique(filePath, JSON.stringify({ ...donnees, format: FORMAT }, null, 2));
+  return filePath;
+});
+
+// Import : remplace les données, après une copie de secours de l'ancien fichier
+ipcMain.handle('importer', async (evenement) => {
   const { canceled, filePaths } = await dialog.showOpenDialog(BrowserWindow.fromWebContents(evenement.sender), {
-    title: 'Choisir le dossier du coffre Obsidian', properties: ['openDirectory'], defaultPath: config.coffre || app.getPath('home'),
+    title: 'Importer un journal', defaultPath: app.getPath('downloads'), properties: ['openFile'],
+    filters: [{ name: 'JSON', extensions: ['json'] }],
   });
   if (canceled || !filePaths[0]) return null;
-  if (!coffre.estCoffre(filePaths[0])) throw new Error("Ce dossier n'est pas un coffre Obsidian (pas de dossier .obsidian).");
-  config.coffre = filePaths[0]; await enregistrerConfig(); surveiller();
-  return config.coffre;
-});
-
-// Données de l'application : un fichier JSON dans le coffre (synchronisé entre les ordinateurs)
-const fichierDonnees = () => { const f = coffre.cheminDans(config.coffre, config.donnees); if (!f.endsWith('.json')) throw new Error('Fichier de données invalide.'); return f; };
-let dernierEcrit = 0;
-ipcMain.handle('lire-donnees', async () => { try { return JSON.parse(await fsp.readFile(fichierDonnees(), 'utf8')); } catch { return null; } });
-ipcMain.handle('ecrire-donnees', async (evenement, donnees) => {
-  dernierEcrit = Date.now();
-  await coffre.ecrireAtomique(fichierDonnees(), JSON.stringify({ format: `${SCHEMA}/1`, ...donnees }, null, 2));
-  return true;
-});
-
-// Notes d'un dossier du coffre, avec leur frontmatter
-ipcMain.handle('lire-notes', async (evenement, dossier) =>
-  (await coffre.lireNotes(config.coffre, dossier)).map(n => ({ ...n, proprietes: coffre.lireFrontmatter(n.texte) })));
-
-// Modifier une propriété d'une note, seulement si elle n'a pas changé ailleurs entre-temps
-ipcMain.handle('changer-propriete', async (evenement, relatif, cle, valeur, mtime) => {
-  if (!/^[\w .-]+$/.test(String(cle))) throw new Error('Nom de propriété invalide.');
-  const chemin = coffre.cheminDans(config.coffre, relatif);
-  const { texte } = await coffre.lireVerifie(chemin, mtime);
-  await coffre.ecrireAtomique(chemin, coffre.changerCle(texte, cle, valeur == null ? null : String(valeur).replace(/\n/g, ' ')));
-  return true;
+  let brut;
+  try { brut = JSON.parse(await fsp.readFile(filePaths[0], 'utf8')); } catch { throw new Error("Ce fichier n'est pas du JSON lisible."); }
+  const propre = Calculs.validerDonnees(brut);
+  const avaitDonnees = fs.existsSync(FICHIER);
+  if (avaitDonnees) await fsp.copyFile(FICHIER, SECOURS);
+  await ecrireFichier(propre);
+  return { trades: propre.trades.length, secours: avaitDonnees ? SECOURS : null };
 });
 
 // Vérification des mises à jour : compare la version installée à la dernière publiée
@@ -85,21 +92,19 @@ ipcMain.handle('verifier-maj', async () => {
   } catch (e) { return { actuelle, erreur: e.message }; }
 });
 
-ipcMain.handle('ouvrir-lien', (evenement, url) => { if (/^(https|obsidian):\/\//.test(String(url))) shell.openExternal(url); });
+ipcMain.handle('ouvrir-lien', (evenement, url) => { if (/^https:\/\//.test(String(url))) shell.openExternal(url); });
 
-// --- Suivi en direct : prévient l'interface quand le fichier de données change ailleurs -----
+// --- Suivi en direct : prévient l'interface quand le fichier change ailleurs (synchro, éditeur) ---
 
-let veilleur = null, minuterie = null;
+let minuterie = null;
 function surveiller() {
-  if (veilleur) veilleur.close(); veilleur = null;
-  if (!config.coffre) return;
   try {
-    const f = fichierDonnees();
-    veilleur = fs.watch(path.dirname(f), (type, nom) => {
-      if (nom !== path.basename(f) || Date.now() - dernierEcrit < 1500) return;
+    fs.mkdirSync(path.dirname(FICHIER), { recursive: true });
+    fs.watch(path.dirname(FICHIER), (type, nom) => {
+      if (nom !== path.basename(FICHIER) || Date.now() - dernierEcrit < 1500) return;
       clearTimeout(minuterie); minuterie = setTimeout(() => BrowserWindow.getAllWindows().forEach(w => w.webContents.send('donnees-changees')), 250);
     });
-  } catch { /* dossier absent */ }
+  } catch { /* dossier inaccessible : pas de suivi en direct */ }
 }
 
 // --- Fenêtre ----------------------------------------------------------------------------
@@ -114,14 +119,14 @@ function servirFichiers() {
 
 function creerFenetre() {
   const fenetre = new BrowserWindow({
-    width: 1280, height: 820, minWidth: 800, minHeight: 520, title: NOM,
-    icon: path.join(__dirname, 'icone.png'), backgroundColor: '#FAFAF7', autoHideMenuBar: true,
+    width: 1280, height: 900, minWidth: 800, minHeight: 520, title: NOM,
+    icon: path.join(__dirname, 'icone.png'), backgroundColor: '#f3f5f8', autoHideMenuBar: true,
     show: !process.env.CAPTURE,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true },
   });
   // Liens externes : dans le navigateur, jamais dans la fenêtre de l'application
-  fenetre.webContents.setWindowOpenHandler(({ url }) => { if (/^(https|obsidian):\/\//.test(url)) shell.openExternal(url); return { action: 'deny' }; });
-  fenetre.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(`app://${SCHEMA}/`)) { e.preventDefault(); if (/^(https|obsidian):\/\//.test(url)) shell.openExternal(url); } });
+  fenetre.webContents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//.test(url)) shell.openExternal(url); return { action: 'deny' }; });
+  fenetre.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(`app://${SCHEMA}/`)) { e.preventDefault(); if (/^https:\/\//.test(url)) shell.openExternal(url); } });
   fenetre.loadURL(`app://${SCHEMA}/index.html`);
   if (process.env.CAPTURE) capturer(fenetre, process.env.CAPTURE);
 }
@@ -142,5 +147,5 @@ function capturer(fenetre, sortie) {
 }
 
 app.setName(NOM);
-app.whenReady().then(() => { chargerConfig(); servirFichiers(); creerFenetre(); surveiller(); });
+app.whenReady().then(() => { servirFichiers(); creerFenetre(); surveiller(); });
 app.on('window-all-closed', () => app.quit());

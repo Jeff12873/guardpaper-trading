@@ -58,7 +58,7 @@ jobs:
         run: |
           nom=$(node -p "require('./package.json').productName")
           version="v$(node -p "require('./package.json').version")"
-          gh release create "$version" "$nom.flatpak" --title "$nom $version" --notes "${{ github.event.head_commit.message }}"
+          gh release create "$version" "$(node -p "require('./package.json').name").flatpak" --title "$nom $version" --notes "${{ github.event.head_commit.message }}"
           # On garde les 3 dernières versions
           gh release list --limit 100 --json tagName --jq '.[3:][].tagName' | while read -r ancienne; do
             gh release delete "$ancienne" --yes --cleanup-tag

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>fr.guardpaper.GuardPaperTrading</id>
+  <name>GuardPaper Trading</name>
+  <summary>Garde-fou de discipline pour le trading forex (MTF 2.0)</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <description>
+    <p>Vérifie chaque trade avant qu'il soit pris : checklist MTF 2.0, stop, taille minimale, renforcement, exposition par devise, risque total, horaires et annonces. Un trade hors règles exige une raison écrite.</p>
+    <p>Calcule la taille de position (risque fixe, frais inclus) et tient un journal avec statistiques et taux de discipline. Aucun ordre n'est passé : l'outil contrôle, il ne décide pas.</p>
+    <p>Aucune donnée dans l'application : tout est dans un fichier local de l'utilisateur.</p>
+  </description>
+  <launchable type="desktop-id">fr.guardpaper.GuardPaperTrading.desktop</launchable>
+  <categories>
+    <category>Office</category>
+    <category>Finance</category>
+  </categories>
+  <url type="homepage">https://github.com/Jeff12873/guardpaper-trading</url>
+  <developer id="io.github.jeff12873">
+    <name>Jeff12873</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.0.0" date="2026-11-21"/>
+  </releases>
+</component>

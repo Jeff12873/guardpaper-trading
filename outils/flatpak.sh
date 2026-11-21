@@ -56,20 +56,20 @@ done
 echo "3/5  Permissions"
 # Ne demander que le nécessaire, et dire pourquoi :
 #  réseau : vérification des mises à jour (et services en ligne éventuels) ;
-#  dossier personnel : lire et écrire dans le coffre Obsidian, où qu'il soit.
+#  ~/.local/share/<nom> : le fichier de données ; Téléchargements : export et import.
 flatpak build-finish "$CONSTRUCTION" \
   --command="$BINAIRE" \
   --socket=wayland --socket=fallback-x11 --share=ipc --share=network --device=dri \
-  --filesystem=home \
+  --filesystem=xdg-data/guardpaper-trading:create --filesystem=xdg-download \
   --env=ELECTRON_OZONE_PLATFORM_HINT=auto > /dev/null
 
-echo "4/5  Dépôt local et fichier $NOM.flatpak"
+echo "4/5  Dépôt local et fichier $BINAIRE.flatpak"
 rm -rf "$DEPOT"
 flatpak build-export "$DEPOT" "$CONSTRUCTION" > /dev/null
-flatpak build-bundle "$DEPOT" "$NOM.flatpak" "$ID"
+flatpak build-bundle "$DEPOT" "$BINAIRE.flatpak" "$ID"
 
-if [ -n "$PUBLIER" ]; then echo "Prêt à publier : $NOM.flatpak"; exit 0; fi
+if [ -n "$PUBLIER" ]; then echo "Prêt à publier : $BINAIRE.flatpak"; exit 0; fi
 
 echo "5/5  Installation"
-flatpak install --user -y --noninteractive --reinstall "$NOM.flatpak"
+flatpak install --user -y --noninteractive --reinstall "$BINAIRE.flatpak"
 echo "Terminé : $NOM est dans le menu des applications et dans Warehouse."
