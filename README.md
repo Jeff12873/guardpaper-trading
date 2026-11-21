@@ -16,7 +16,7 @@ dans `~/.local/share/guardpaper-trading/donnees.json`, sur l'ordinateur de l'uti
 ## Feuille de route
 
 1. ✅ Stockage dans un fichier local, export / import JSON.
-2. Annonces économiques automatiques (flux ForexFactory), avec repli manuel.
+2. ✅ Annonces économiques automatiques (flux ForexFactory, cache 1 h), avec repli manuel.
 3. Corrélation entre paires (Pearson sur rendements journaliers, taux BCE), matrice puis règle bloquante.
 4. Champs `mode` (replay / démo / réel) et `rulesSnapshot`, filtres des statistiques.
 
@@ -29,6 +29,7 @@ dans `~/.local/share/guardpaper-trading/donnees.json`, sur l'ordinateur de l'uti
 | `tests/` | Tests des calculs (`npm test`), dont les valeurs de contrôle du cahier des charges |
 | `bureau/main.js` | Processus principal : fenêtre, fichier de données, export / import, mises à jour |
 | `bureau/preload.js` | Pont : la liste fermée des actions que l'interface peut demander (`window.appli`) |
+| `bureau/annonces.js` | Calendrier ForexFactory : cache 1 h (mémoire + disque), mode simulé `GUARDPAPER_ANNONCES=<fichier>` |
 | `bureau/coffre.js` | Écriture atomique des fichiers |
 | `bureau/flatpak/` | Lanceur, fiche `.desktop`, fiche AppStream `metainfo.xml`, icônes |
 | `outils/flatpak.sh` | Fabrique (et installe) le Flatpak |
@@ -40,5 +41,6 @@ dans `~/.local/share/guardpaper-trading/donnees.json`, sur l'ordinateur de l'uti
     npm test                                                          # calculs
     npm run demarrer                                                  # lancer
     GUARDPAPER_DONNEES=/tmp/essai.json npm run demarrer               # sur un fichier de test
+    GUARDPAPER_ANNONCES=flux.json GUARDPAPER_DONNEES=/tmp/essai.json npm run demarrer   # calendrier simulé
     GUARDPAPER_DONNEES=/tmp/essai.json CAPTURE=/tmp/ecran.png SCRIPT=test.js npx electron .
     sh outils/flatpak.sh                                              # fabrique et installe le Flatpak

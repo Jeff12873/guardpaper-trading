@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('appli', {
   config: () => ipcRenderer.invoke('config'),
   lireDonnees: () => ipcRenderer.invoke('lire-donnees'),
   ecrireDonnees: (donnees) => ipcRenderer.invoke('ecrire-donnees', donnees),
+  annonces: (forcer) => ipcRenderer.invoke('annonces', forcer),
   exporter: () => ipcRenderer.invoke('exporter'),
   importer: () => ipcRenderer.invoke('importer'),
   verifierMaj: () => ipcRenderer.invoke('verifier-maj'),

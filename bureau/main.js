@@ -13,6 +13,7 @@ const os = require('node:os');
 const { pathToFileURL } = require('node:url');
 const { ecrireAtomique } = require('./coffre');
 const Calculs = require('../calculs.js');
+const Annonces = require('./annonces');
 const PAQUET = require('../package.json');
 
 const NOM = PAQUET.productName;
@@ -42,10 +43,14 @@ async function ecrireFichier(donnees) {
   await ecrireAtomique(FICHIER, JSON.stringify({ format: FORMAT, ...propre }, null, 2));
 }
 
+// Calendrier économique : cache à côté du fichier de données (une requête par heure au plus)
+const annonces = Annonces.creer({ dossierCache: path.dirname(FICHIER), fetch: (...a) => net.fetch(...a) });
+
 // --- Actions offertes à l'interface (IPC) --------------------------------------------------
 
 ipcMain.handle('config', () => ({ version: app.getVersion(), nom: NOM, fichier: FICHIER }));
 ipcMain.handle('lire-donnees', () => lireFichier());
+ipcMain.handle('annonces', (evenement, forcer) => annonces.obtenir(forcer === true));
 ipcMain.handle('ecrire-donnees', async (evenement, donnees) => { await ecrireFichier(donnees); return true; });
 
 // Export : copie JSON lisible où l'utilisateur veut

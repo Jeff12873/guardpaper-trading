@@ -10,6 +10,7 @@
   const RISQUE_PAR_FREQ = { many: 0.5, mid: 1, few: 1.5 };
   const DEFAUTS = {
     capital: 10000, freq: 'mid', maxTotal: 3, maxCcy: 2, start: 7, end: 22, eurusd: 1.09, comm: 6, slip: 0.5,
+    newsBefore: 30, newsAfter: 120,             // fenêtre des annonces autour de l'entrée, en minutes
     spreads: { 'EUR/USD': 0.6, 'GBP/USD': 0.9, 'USD/JPY': 0.8, 'USD/CHF': 1.0, 'AUD/USD': 0.8, 'USD/CAD': 1.0, 'NZD/USD': 1.2 },
   };
 
@@ -68,6 +69,43 @@
     };
   }
 
+  /* ───────── Annonces économiques (règle R9) ───────── */
+  const JOUR = 86400000;
+  const estFort = (e) => e.impact === 'High';
+
+  // Semaine couverte par le flux ForexFactory : du dimanche 00:00 au dimanche suivant, dans le fuseau
+  // des dates du flux (heure de New York). Renvoie {debut, fin} en ms, ou null si le flux est vide.
+  function couvertureSemaine(evenements) {
+    if (!evenements || !evenements.length) return null;
+    const premier = evenements.map(e => e.date).sort((a, b) => Date.parse(a) - Date.parse(b))[0];
+    const jour = premier.slice(0, 10), decalage = premier.slice(19) || 'Z';
+    const minuit = Date.parse(`${jour}T00:00:00${decalage}`);
+    const jourSemaine = new Date(`${jour}T00:00:00Z`).getUTCDay();          // 0 = dimanche
+    const debut = minuit - jourSemaine * JOUR;
+    return { debut, fin: debut + 7 * JOUR };
+  }
+
+  // Règle R9. mode « auto » seulement si toute la fenêtre [quand − avant, quand + après] est couverte
+  // par le flux ; sinon « manuel » (Replay sur une date passée, flux absent, fin de semaine).
+  function verifierAnnonces({ evenements, paire, quand, avantMin, apresMin }) {
+    const couv = couvertureSemaine(evenements);
+    if (!isFinite(quand)) return { mode: 'manuel', raison: 'date' };
+    if (!couv) return { mode: 'manuel', raison: 'flux' };
+    const de = quand - avantMin * 60000, a = quand + apresMin * 60000;
+    if (de < couv.debut || a > couv.fin) return { mode: 'manuel', raison: 'hors-semaine' };
+    const dev = devises(paire);
+    const bloquantes = evenements
+      .filter(e => estFort(e) && dev.includes(e.country))
+      .filter(e => { const t = Date.parse(e.date); return t >= de && t <= a; })
+      .sort((x, y) => Date.parse(x.date) - Date.parse(y.date));
+    return { mode: 'auto', bloquantes };
+  }
+
+  // Prochaines annonces fortes (à partir de maintenant), triées par date
+  const prochainesAnnonces = (evenements, maintenant) => (evenements || [])
+    .filter(e => estFort(e) && Date.parse(e.date) >= maintenant)
+    .sort((x, y) => Date.parse(x.date) - Date.parse(y.date));
+
   // Vérifie et complète des données importées (fichier JSON) ; lève une erreur lisible si invalide
   function validerDonnees(d) {
     if (!d || typeof d !== 'object') throw new Error("Ce fichier n'est pas une sauvegarde valide.");
@@ -82,5 +120,5 @@
     return { settings: { ...DEFAUTS, ...s, spreads: { ...DEFAUTS.spreads, ...(s.spreads || {}) } }, trades };
   }
 
-  return { PAIRES, RISQUE_PAR_FREQ, DEFAUTS, nombre, taillePip, devises, cotationVersEUR, valeurPipEUR, taillePosition, resultatCloture, statistiques, validerDonnees };
+  return { PAIRES, RISQUE_PAR_FREQ, DEFAUTS, nombre, taillePip, devises, cotationVersEUR, valeurPipEUR, taillePosition, resultatCloture, statistiques, validerDonnees, couvertureSemaine, verifierAnnonces, prochainesAnnonces };
 });

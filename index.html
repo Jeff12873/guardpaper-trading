@@ -61,8 +61,18 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .checklist label:hover{background:var(--bg)}
 .checklist input{margin-top:3px}
 .checklist b{white-space:nowrap}
-.news{display:flex;gap:8px;align-items:flex-start;padding:10px;border-radius:6px;background:var(--warn-bg);font-size:14px}
+.news{display:grid;gap:8px;padding:10px 12px;border-radius:6px;background:var(--bg);border:1px solid var(--line);font-size:14px}
+.news.manuel{background:var(--warn-bg);border-color:transparent}
 .news a{color:var(--accent)}
+.news .tete{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.news .tete b{flex:1}
+.news .manu{display:flex;gap:8px;align-items:flex-start}
+.news .manu input{margin-top:3px}
+.news [hidden]{display:none}
+.annonces{list-style:none;margin:0;padding:0;display:grid;gap:2px;font-size:13px}
+.annonces li{display:grid;grid-template-columns:88px 92px 40px 1fr;gap:8px;padding:3px 6px;border-radius:4px;color:var(--muted)}
+.annonces li.paire{color:var(--ink);font-weight:600;background:var(--warn-bg)}
+.annonces li.bloque{background:var(--bad-bg);color:var(--bad)}
 .verdict{display:grid;gap:12px;position:sticky;top:12px}
 .calc{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px}
 .calc dt{color:var(--muted)} .calc dd{margin:0;text-align:right}
@@ -160,10 +170,16 @@ dialog h3{margin:0 0 12px}
             <input class="num" id="fStop" inputmode="decimal" placeholder="1,09420"></label>
         </div>
 
-        <div class="news">
-          <input type="checkbox" id="fNews">
-          <label for="fNews">Une annonce 3 étoiles (taux, emploi US, inflation) tombe dans les 2 h sur une des deux devises.
-            <a href="https://fr.investing.com/economic-calendar/" target="_blank" rel="noopener">Ouvrir le calendrier Investing</a></label>
+        <div class="news" id="newsBox">
+          <div class="tete"><b id="newsTitre">Annonces économiques</b>
+            <button class="btn ghost small" id="bNewsMaj" type="button" title="Recharger le calendrier (au plus toutes les 5 min)">↻</button>
+            <a href="https://fr.investing.com/economic-calendar/" target="_blank" rel="noopener">Calendrier Investing</a></div>
+          <div class="sub" id="newsStatut">Chargement du calendrier…</div>
+          <div class="manu" id="newsManuel">
+            <input type="checkbox" id="fNews">
+            <label for="fNews" id="newsManuelTxt">Une annonce 3 étoiles (taux, emploi US, inflation) tombe dans la fenêtre sur une des deux devises.</label>
+          </div>
+          <ul class="annonces" id="newsListe"></ul>
         </div>
 
         <div>
@@ -249,6 +265,11 @@ dialog h3{margin:0 0 12px}
           <label class="f" for="sEnd">Fin des entrées (h, Paris)<input class="num" id="sEnd" inputmode="numeric"></label>
           <label class="f" for="sEurUsd">Cours EUR/USD (conversion en €)<input class="num" id="sEurUsd" inputmode="decimal"></label>
         </div>
+        <h2>Annonces économiques</h2>
+        <div class="fields">
+          <label class="f" for="sNewsBefore">Bloquer à partir de (min avant l'annonce)<input class="num" id="sNewsBefore" inputmode="numeric"></label>
+          <label class="f" for="sNewsAfter">Jusqu'à (min après l'annonce)<input class="num" id="sNewsAfter" inputmode="numeric"></label>
+        </div>
         <h2>Frais (à vérifier sur ton compte Pepperstone)</h2>
         <div class="fields">
           <label class="f" for="sComm">Commission aller-retour (€ par lot)<input class="num" id="sComm" inputmode="decimal"></label>
@@ -283,7 +304,7 @@ dialog h3{margin:0 0 12px}
 /* ───────── Socle ───────── */
 const C = window.Calculs;
 const BUREAU = !!window.appli;            // false = page ouverte dans un navigateur (mode autonome)
-const TEMPO = {toast: 2600, toastAction: 6500, verifMaj: 4000, confirmer: 3000};
+const TEMPO = {toast: 2600, toastAction: 6500, verifMaj: 4000, confirmer: 3000, annonces: 15 * 60000, compteARebours: 60000};
 const messageErreur = (e) => String(e && e.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 const local = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} } };
 
@@ -367,8 +388,8 @@ function evaluate(){
   if (dt){ const h = new Date(dt).getHours(); hourOK = h >= settings.start && h < settings.end;
     hourTxt = hourOK ? `Heure d'entrée dans la plage ${settings.start}h-${settings.end}h` : `Hors plage horaire (${settings.start}h-${settings.end}h)`; }
   rules.push({ok: hourOK, txt: hourTxt});
-  const newsOK = !$("fNews").checked;
-  rules.push({ok: newsOK, txt: newsOK ? "Pas d'annonce 3 étoiles dans les 2 h" : "Annonce 3 étoiles proche : on attend"});
+  const news = regleAnnonces(pair, dt);
+  rules.push({ok: news.ok, txt: news.txt});
 
   // Affichage calcul
   $("oLots").textContent = sz ? fmtNum(sz.lots, 2) : "—";
@@ -384,6 +405,57 @@ function evaluate(){
   $("bSave").disabled = !allOK || !pret;
   $("bForce").disabled = allOK || !canForce || !pret;
   return {allOK, sz, pair, entry, stop, dt};
+}
+
+/* ───────── Annonces économiques (R9) : automatique sur la semaine du flux, sinon case manuelle ───────── */
+let annonces = {evenements: [], recupere: null, erreur: null, charge: false};
+const duree = m => m % 60 ? `${m} min` : `${m / 60} h`;
+const fenetreTxt = () => `de ${duree(settings.newsBefore)} avant à ${duree(settings.newsAfter)} après`;
+async function chargerAnnonces(forcer = false){
+  if (!BUREAU){ annonces = {evenements: [], recupere: null, erreur: "Mode navigateur : calendrier automatique disponible dans l'application de bureau.", charge: true}; evaluate(); return; }
+  try { annonces = {...(await window.appli.annonces(forcer)), charge: true}; }
+  catch(e){ annonces = {evenements: [], recupere: null, erreur: "Calendrier indisponible (" + messageErreur(e) + ").", charge: true}; }
+  evaluate();
+}
+function regleAnnonces(pair, dt){
+  const quand = dt ? new Date(dt).getTime() : NaN;
+  const v = C.verifierAnnonces({evenements: annonces.evenements, paire: pair, quand, avantMin: settings.newsBefore, apresMin: settings.newsAfter});
+  const box = $("newsBox"), manuel = v.mode === "manuel";
+  box.classList.toggle("manuel", manuel); $("newsManuel").hidden = !manuel;
+  if (!manuel) $("fNews").checked = false;
+  $("newsManuelTxt").textContent = `Une annonce 3 étoiles (taux, emploi US, inflation) tombe ${fenetreTxt()} l'entrée, sur ${C.devises(pair).join(" ou ")}.`;
+  let statut;
+  if (!annonces.charge) statut = "Chargement du calendrier…";
+  else if (v.raison === "flux") statut = `⚠ ${annonces.erreur || "Calendrier vide."} Vérifie à la main sur Investing.`;
+  else if (v.raison === "hors-semaine") statut = "⚠ Date hors de la semaine du calendrier (Replay ou week-end) : vérifie à la main sur Investing.";
+  else if (v.raison === "date") statut = "Saisis la date et l'heure.";
+  else statut = `Automatique : annonces fortes ${C.devises(pair).join(" et ")} ${fenetreTxt()} l'entrée.` + (annonces.erreur ? ` ⚠ ${annonces.erreur} Données du ${fmtDate(new Date(annonces.recupere))}.` : "");
+  $("newsStatut").textContent = statut;
+  renderAnnonces(); marquerBloquantes(manuel ? [] : v.bloquantes, pair);
+  if (manuel){ const ok = !$("fNews").checked; return {ok, txt: ok ? `Pas d'annonce 3 étoiles signalée (vérification manuelle)` : "Annonce 3 étoiles proche : on attend"}; }
+  if (!v.bloquantes.length) return {ok: true, txt: `Pas d'annonce forte ${C.devises(pair).join("/")} ${fenetreTxt()} (auto)`};
+  const e = v.bloquantes[0];
+  return {ok: false, txt: `Annonce forte ${e.country} « ${e.title} » à ${heure(e.date)} : on attend`};
+}
+const heure = iso => new Date(iso).toLocaleString("fr-FR", {weekday: "short", hour: "2-digit", minute: "2-digit"});
+function dansCombien(ms){
+  const m = Math.round(ms / 60000);
+  if (m < 1) return "maintenant"; if (m < 60) return `dans ${m} min`;
+  if (m < 1440) return `dans ${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`;
+  return `dans ${Math.floor(m / 1440)} j ${Math.floor(m % 1440 / 60)} h`;
+}
+// Liste des prochaines annonces fortes des 8 devises, avec compte à rebours
+function renderAnnonces(){
+  const pair = $("fPair").value, dev = C.devises(pair), maintenant = Date.now();
+  const liste = C.prochainesAnnonces(annonces.evenements, maintenant).slice(0, 10);
+  $("newsTitre").textContent = annonces.recupere ? `Annonces fortes à venir (calendrier du ${fmtDate(new Date(annonces.recupere))})` : "Annonces économiques";
+  $("newsListe").innerHTML = liste.length ? liste.map(e => `<li class="${dev.includes(e.country) ? "paire" : ""}" data-date="${esc(e.date)}" data-ccy="${esc(e.country)}">
+      <span class="num">${dansCombien(Date.parse(e.date) - maintenant)}</span><span>${esc(heure(e.date))}</span><b>${esc(e.country)}</b><span>${esc(e.title)}</span></li>`).join("")
+    : (annonces.charge && annonces.evenements.length ? `<li><span></span><span></span><span></span><span>Plus d'annonce forte cette semaine.</span></li>` : "");
+}
+function marquerBloquantes(bloquantes, pair){
+  const cles = new Set(bloquantes.map(e => e.date + e.country));
+  document.querySelectorAll("#newsListe li[data-date]").forEach(li => li.classList.toggle("bloque", cles.has(li.dataset.date + li.dataset.ccy)));
 }
 
 /* ───────── Enregistrement ───────── */
@@ -450,6 +522,7 @@ function renderSettings(){
   $("sMaxTotal").value = fmtNum(settings.maxTotal, 1); $("sMaxCcy").value = settings.maxCcy;
   $("sStart").value = settings.start; $("sEnd").value = settings.end; $("sEurUsd").value = fmtNum(settings.eurusd, 4);
   $("sComm").value = fmtNum(settings.comm, 2); $("sSlip").value = fmtNum(settings.slip, 1);
+  $("sNewsBefore").value = settings.newsBefore; $("sNewsAfter").value = settings.newsAfter;
   $("spreadFields").innerHTML = C.PAIRES.map(p => `<label class="f" for="sp-${p.replace("/","")}">Spread ${p} (pips)<input class="num" id="sp-${p.replace("/","")}" inputmode="decimal" value="${fmtNum(settings.spreads[p] ?? 1, 1)}"></label>`).join("");
   $("fichierLigne").textContent = BUREAU ? `Fichier de données : ${CFG.fichier || "—"}` : "Mode navigateur : données gardées dans ce navigateur.";
 }
@@ -479,11 +552,12 @@ async function saveSettings(){
   const s = {
     capital: C.nombre($("sCapital").value), freq: $("sFreq").value, maxTotal: C.nombre($("sMaxTotal").value), maxCcy: Math.round(C.nombre($("sMaxCcy").value)),
     start: Math.round(C.nombre($("sStart").value)), end: Math.round(C.nombre($("sEnd").value)), eurusd: C.nombre($("sEurUsd").value),
-    comm: C.nombre($("sComm").value), slip: C.nombre($("sSlip").value), spreads: {}
+    comm: C.nombre($("sComm").value), slip: C.nombre($("sSlip").value),
+    newsBefore: Math.round(C.nombre($("sNewsBefore").value)), newsAfter: Math.round(C.nombre($("sNewsAfter").value)), spreads: {}
   };
   C.PAIRES.forEach(p => s.spreads[p] = C.nombre($("sp-" + p.replace("/","")).value));
   const bad = Object.entries(s).filter(([k,v]) => k !== "freq" && k !== "spreads" && !(isFinite(v) && v >= 0)).map(([k]) => k);
-  if (bad.length || Object.values(s.spreads).some(v => !(isFinite(v) && v >= 0)) || s.capital <= 0 || s.eurusd <= 0 || s.start >= s.end || s.end > 24){ toast("Un réglage n'est pas un nombre valide"); return; }
+  if (bad.length || Object.values(s.spreads).some(v => !(isFinite(v) && v >= 0)) || s.capital <= 0 || s.eurusd <= 0 || s.start >= s.end || s.end > 24 || s.newsBefore > 1440 || s.newsAfter > 1440){ toast("Un réglage n'est pas un nombre valide"); return; }
   try { await store.putSettings(s); toast("Réglages enregistrés"); } catch {}
 }
 async function exporter(){
@@ -510,7 +584,7 @@ const AIDE = [
     <p>Un trade ne s'enregistre que si <b>toutes les règles sont vertes</b>. Sinon, tu peux l'enregistrer « hors règles » avec une raison écrite : il comptera contre ton taux de discipline.</p>`},
   {t: "2. Nouveau trade", h: `<p>Saisis la date (en Bar Replay : celle de la bougie), la paire, le sens, le prix d'entrée et le stop. Les prix acceptent la virgule.</p>
     <p>Coche les 10 points de la checklist MTF 2.0. À droite, la <b>taille de position</b> se calcule en direct : risque fixe du capital courant, spread, glissement et commission compris.</p>
-    <p class="astuce">L'annonce économique est pour l'instant une case à cocher : vérifie le calendrier Investing (lien dans le cadre jaune).</p>`},
+    <p class="astuce">Les annonces économiques sont vérifiées automatiquement (voir « Annonces économiques »).</p>`},
   {t: "3. Les règles", h: `<ul>
     <li><b>Checklist</b> : les 10 cases cochées.</li>
     <li><b>Stop</b> : sous l'entrée pour un achat, au-dessus pour une vente.</li>
@@ -519,15 +593,19 @@ const AIDE = [
     <li><b>Exposition par devise</b> : au plus N positions contenant la même devise (réglage).</li>
     <li><b>Risque total</b> : la somme des risques ouverts ne dépasse pas le maximum (réglage).</li>
     <li><b>Horaires</b> : heure d'entrée dans la plage réglée (heure de Paris).</li>
-    <li><b>Annonce</b> : pas d'annonce 3 étoiles dans les 2 h.</li></ul>`},
-  {t: "4. Positions et journal", h: `<p>Dans <b>Positions ouvertes</b>, saisis le prix et la date de sortie puis <b>Clôturer</b> : le résultat est calculé net de frais, en euros et en R (résultat ÷ risque réel).</p>
+    <li><b>Annonce</b> : pas d'annonce forte sur une des deux devises autour de l'entrée (automatique, sinon case manuelle).</li></ul>`},
+  {t: "4. Annonces économiques", h: `<p>L'application lit le calendrier public <b>ForexFactory</b> (semaine en cours) et <b>bloque</b> le trade si une annonce à fort impact concerne une des deux devises de la paire, de 30 min avant à 2 h après l'heure d'entrée (réglable).</p>
+    <p>Le cadre liste les prochaines annonces fortes des 8 devises avec un compte à rebours ; celles de la paire choisie sont surlignées, celle qui bloque est en rouge.</p>
+    <p>Le calendrier est rechargé <b>au plus une fois par heure</b> (bouton ↻ : au plus toutes les 5 minutes), pour respecter la source.</p>
+    <p class="astuce">Limites : ce flux n'est <b>pas officiel</b> et ne couvre que la <b>semaine en cours</b>. Si le flux est coupé, ou en <b>Replay</b> sur une date passée, la règle repasse en <b>case à cocher</b> (cadre jaune) : vérifie alors sur le calendrier Investing.</p>`},
+  {t: "5. Positions et journal", h: `<p>Dans <b>Positions ouvertes</b>, saisis le prix et la date de sortie puis <b>Clôturer</b> : le résultat est calculé net de frais, en euros et en R (résultat ÷ risque réel).</p>
     <p><b>Journal et stats</b> donne le nombre de trades (objectif 100), le % de gagnants, le profit factor, le total, le drawdown max et le <b>taux de discipline</b>, avec la comparaison « dans les règles / hors règles ».</p>
     <p class="astuce">Supprimer demande deux clics ; juste après, « Annuler » dans la notification remet le trade.</p>`},
-  {t: "5. Réglages", h: `<p>Capital de départ, fréquence des opportunités (0,5 / 1 / 1,5 % par trade), risque total max, positions max par devise, horaires, cours EUR/USD de conversion, commission, glissement et spread de chaque paire.</p>
+  {t: "6. Réglages", h: `<p>Capital de départ, fréquence des opportunités (0,5 / 1 / 1,5 % par trade), risque total max, positions max par devise, horaires, fenêtre des annonces, cours EUR/USD de conversion, commission, glissement et spread de chaque paire.</p>
     <p>Le risque par trade s'applique au <b>capital courant</b> : capital de départ + résultats des trades clôturés.</p>`},
-  {t: "6. Sauvegarde", h: `<p>Tes trades et réglages sont dans un fichier JSON sur cet ordinateur (chemin affiché dans <b>Réglages → Sauvegarde</b>), jamais en ligne.</p>
+  {t: "7. Sauvegarde", h: `<p>Tes trades et réglages sont dans un fichier JSON sur cet ordinateur (chemin affiché dans <b>Réglages → Sauvegarde</b>), jamais en ligne.</p>
     <p><b>Exporter</b> écrit une copie où tu veux. <b>Importer</b> remplace tout, après confirmation, et garde l'ancien fichier en secours (« .avant-import.json »).</p>`},
-  {t: "7. Thème et mises à jour", h: `<p>Le bouton <b>◐</b> passe de automatique (suit le système) à clair, puis sombre.</p>
+  {t: "8. Thème et mises à jour", h: `<p>Le bouton <b>◐</b> passe de automatique (suit le système) à clair, puis sombre.</p>
     <p>Au démarrage, l'application vérifie s'il existe une nouvelle version. Si oui, le bouton jaune <b>⬆ Mise à jour</b> apparaît.</p>`},
 ];
 function ouvrirAide(i = 0){
@@ -584,6 +662,7 @@ $("bSave").onclick = () => saveTrade(false);
 $("bForce").onclick = () => saveTrade(true);
 $("bSaveSettings").onclick = saveSettings;
 $("bExport").onclick = exporter;
+$("bNewsMaj").onclick = async () => { await chargerAnnonces(true); toast(annonces.erreur || "Calendrier à jour"); };
 $("bImport").onclick = importer;
 $("btnAide").onclick = () => ouvrirAide(0);
 document.addEventListener("click", e => {
@@ -602,6 +681,9 @@ setDir("long");
     window.appli.surDonneesChangees(async () => { await charger(); toast("Données mises à jour depuis le fichier."); });
   }
   await charger();
+  chargerAnnonces();
+  setInterval(() => chargerAnnonces(), TEMPO.annonces);                     // le cache limite à 1 requête/heure
+  setInterval(evaluate, TEMPO.compteARebours);                              // compte à rebours
   setTimeout(verifierMaj, TEMPO.verifMaj);
 })();
 </script>

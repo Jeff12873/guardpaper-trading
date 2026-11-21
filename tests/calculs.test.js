@@ -50,3 +50,48 @@ test('Import : refuse un fichier invalide, complète les réglages manquants', (
   assert.equal(d.settings.spreads['EUR/USD'], 0.2);
   assert.equal(d.settings.spreads['USD/JPY'], 0.8);
 });
+
+/* ───────── Annonces (R9) ───────── */
+// Semaine fictive au format du flux ForexFactory (heure de New York, UTC−5 en novembre)
+const SEMAINE = [
+  { title: 'Indice fictif', country: 'NZD', date: '2026-11-15T16:30:00-05:00', impact: 'Low' },
+  { title: 'Emploi US fictif', country: 'USD', date: '2026-11-17T08:30:00-05:00', impact: 'High' },   // 14:30 Paris
+  { title: 'Taux BCE fictif', country: 'EUR', date: '2026-11-19T07:45:00-05:00', impact: 'High' },   // 13:45 Paris
+  { title: 'Inflation CAD fictive', country: 'CAD', date: '2026-11-18T08:30:00-05:00', impact: 'Medium' },
+  { title: 'Jour férié', country: 'JPY', date: '2026-11-20T00:00:00-05:00', impact: 'Holiday' },
+];
+const r9 = (paire, iso) => C.verifierAnnonces({ evenements: SEMAINE, paire, quand: Date.parse(iso), avantMin: 30, apresMin: 120 });
+
+test('Couverture : du dimanche 00:00 (New York) au dimanche suivant', () => {
+  const c = C.couvertureSemaine(SEMAINE);
+  assert.equal(new Date(c.debut).toISOString(), '2026-11-15T05:00:00.000Z');
+  assert.equal(new Date(c.fin).toISOString(), '2026-11-22T05:00:00.000Z');
+  assert.equal(C.couvertureSemaine([]), null);
+});
+
+test('R9 : bloque une annonce forte sur une des devises dans [−30 min, +2 h]', () => {
+  const avant = r9('EUR/USD', '2026-11-17T13:00:00+01:00');            // emploi US 1 h 30 après
+  assert.equal(avant.mode, 'auto');
+  assert.equal(avant.bloquantes.length, 1);
+  assert.equal(avant.bloquantes[0].country, 'USD');
+  assert.equal(r9('EUR/USD', '2026-11-17T14:50:00+01:00').bloquantes.length, 1);   // 20 min après
+  assert.equal(r9('EUR/USD', '2026-11-17T15:10:00+01:00').bloquantes.length, 0);   // 40 min après
+  assert.equal(r9('EUR/USD', '2026-11-17T12:20:00+01:00').bloquantes.length, 0);   // 2 h 10 avant
+});
+
+test('R9 : ignore les autres devises, les impacts moyens et les jours fériés', () => {
+  assert.equal(r9('GBP/USD', '2026-11-19T13:00:00+01:00').bloquantes.length, 0);   // BCE : pas de EUR
+  assert.equal(r9('USD/CAD', '2026-11-18T14:00:00+01:00').bloquantes.length, 0);   // Medium
+  assert.equal(r9('USD/JPY', '2026-11-20T05:30:00+01:00').bloquantes.length, 0);   // Holiday
+});
+
+test('R9 : repli manuel hors de la semaine du flux (Replay) ou sans flux', () => {
+  assert.equal(r9('EUR/USD', '2026-01-14T10:00:00+01:00').mode, 'manuel');
+  assert.equal(r9('EUR/USD', '2026-11-22T04:30:00+01:00').mode, 'manuel');          // fenêtre déborde sur la semaine suivante
+  assert.equal(C.verifierAnnonces({ evenements: [], paire: 'EUR/USD', quand: Date.now(), avantMin: 30, apresMin: 120 }).mode, 'manuel');
+});
+
+test('Prochaines annonces fortes, dans l\'ordre', () => {
+  const p = C.prochainesAnnonces(SEMAINE, Date.parse('2026-11-16T00:00:00Z'));
+  assert.deepEqual(p.map(e => e.country), ['USD', 'EUR']);
+});
